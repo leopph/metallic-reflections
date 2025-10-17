@@ -1,6 +1,6 @@
 #include "window.hpp"
 
-namespace tracy {
+namespace refl {
 namespace {
 [[nodiscard]] auto CALLBACK WindowProc(HWND const hwnd, UINT const msg, WPARAM const wParam,
                                        LPARAM const lParam) -> LRESULT {

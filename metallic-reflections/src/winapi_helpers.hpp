@@ -4,6 +4,6 @@
 #define NOMINMAX
 #include <Windows.h>
 
-namespace tracy {
+namespace refl {
 auto ThrowIfFailed(HRESULT hr) -> void;
 }

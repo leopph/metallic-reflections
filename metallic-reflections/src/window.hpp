@@ -7,7 +7,7 @@
 #define NOMINMAX
 #include <Windows.h>
 
-namespace tracy {
+namespace refl {
 class WindowDeleter {
 public:
   auto operator()(HWND hwnd) const -> void;

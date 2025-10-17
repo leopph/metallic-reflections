@@ -2,7 +2,7 @@
 
 #include <stdexcept>
 
-namespace tracy {
+namespace refl {
 auto ThrowIfFailed(HRESULT const hr) -> void {
   if (FAILED(hr)) {
     throw std::runtime_error{"Error"};

@@ -23,14 +23,14 @@
 import std;
 
 auto main() -> int {
-  auto hwnd{tracy::MakeWindow()};
+  auto hwnd{refl::MakeWindow()};
 
   if (!hwnd) {
     return -1;
   }
 
   using Microsoft::WRL::ComPtr;
-  using tracy::ThrowIfFailed;
+  using refl::ThrowIfFailed;
 
   UINT dxgi_factory_flags{0};
 #ifndef NDEBUG
