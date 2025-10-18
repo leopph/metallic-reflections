@@ -187,6 +187,74 @@ auto main() -> int {
     .MaxLOD = D3D11_FLOAT32_MAX
   };
 
+  D3D11_TEXTURE2D_DESC const gbuffer0_tex_desc{
+    .Width = output_width,
+    .Height = output_height,
+    .MipLevels = 1,
+    .ArraySize = 1,
+    .Format = DXGI_FORMAT_R32G32B32A32_FLOAT,
+    .SampleDesc = {.Count = 1, .Quality = 0},
+    .Usage = D3D11_USAGE_DEFAULT,
+    .BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE,
+    .CPUAccessFlags = 0,
+    .MiscFlags = 0
+  };
+
+  ComPtr<ID3D11Texture2D> gbuffer0_tex;
+  ThrowIfFailed(dev->CreateTexture2D(&gbuffer0_tex_desc, nullptr, &gbuffer0_tex));
+
+  D3D11_RENDER_TARGET_VIEW_DESC const gbuffer0_rtv_desc{
+    .Format = gbuffer0_tex_desc.Format,
+    .ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D,
+    .Texture2D = {.MipSlice = 0}
+  };
+
+  ComPtr<ID3D11RenderTargetView> gbuffer0_rtv;
+  ThrowIfFailed(dev->CreateRenderTargetView(gbuffer0_tex.Get(), &gbuffer0_rtv_desc, &gbuffer0_rtv));
+
+  D3D11_SHADER_RESOURCE_VIEW_DESC const gbuffer0_srv_desc{
+    .Format = gbuffer0_tex_desc.Format,
+    .ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D,
+    .Texture2D = {.MostDetailedMip = 0, .MipLevels = 1}
+  };
+
+  ComPtr<ID3D11ShaderResourceView> gbuffer0_srv;
+  ThrowIfFailed(dev->CreateShaderResourceView(gbuffer0_tex.Get(), &gbuffer0_srv_desc, &gbuffer0_srv));
+
+  D3D11_TEXTURE2D_DESC const gbuffer1_tex_desc{
+    .Width = output_width,
+    .Height = output_height,
+    .MipLevels = 1,
+    .ArraySize = 1,
+    .Format = DXGI_FORMAT_R32G32B32A32_FLOAT,
+    .SampleDesc = {.Count = 1, .Quality = 0},
+    .Usage = D3D11_USAGE_DEFAULT,
+    .BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE,
+    .CPUAccessFlags = 0,
+    .MiscFlags = 0
+  };
+
+  ComPtr<ID3D11Texture2D> gbuffer1_tex;
+  ThrowIfFailed(dev->CreateTexture2D(&gbuffer1_tex_desc, nullptr, &gbuffer1_tex));
+
+  D3D11_RENDER_TARGET_VIEW_DESC const gbuffer1_rtv_desc{
+    .Format = gbuffer1_tex_desc.Format,
+    .ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D,
+    .Texture2D = {.MipSlice = 0}
+  };
+
+  ComPtr<ID3D11RenderTargetView> gbuffer1_rtv;
+  ThrowIfFailed(dev->CreateRenderTargetView(gbuffer1_tex.Get(), &gbuffer1_rtv_desc, &gbuffer1_rtv));
+
+  D3D11_SHADER_RESOURCE_VIEW_DESC const gbuffer1_srv_desc{
+    .Format = gbuffer1_tex_desc.Format,
+    .ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D,
+    .Texture2D = {.MostDetailedMip = 0, .MipLevels = 1}
+  };
+
+  ComPtr<ID3D11ShaderResourceView> gbuffer1_srv;
+  ThrowIfFailed(dev->CreateShaderResourceView(gbuffer1_tex.Get(), &gbuffer1_srv_desc, &gbuffer1_srv));
+
   ComPtr<ID3D11SamplerState> sampler_point_clamp;
   ThrowIfFailed(dev->CreateSamplerState(&sampler_point_clamp_desc, &sampler_point_clamp));
 
