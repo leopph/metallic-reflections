@@ -222,6 +222,15 @@ auto main() -> int {
 
   ShowWindow(hwnd.get(), SW_SHOW);
 
+  D3D11_VIEWPORT const viewport{
+    .TopLeftX = 0.0F, .TopLeftY = 0.0F,
+    .Width = static_cast<FLOAT>(output_width),
+    .Height = static_cast<FLOAT>(output_height),
+    .MinDepth = 0.0F, .MaxDepth = 1.0F
+  };
+
+  std::array constexpr black_color{0.0F, 0.0F, 0.0F, 1.0F};
+
   int ret;
 
   while (true) {
@@ -237,18 +246,11 @@ auto main() -> int {
       DispatchMessageW(&msg);
     }
 
-    ctx->ClearRenderTargetView(hdr_rtv.Get(), std::array{0.0F, 0.0F, 0.0F, 1.0F}.data());
+    ctx->ClearRenderTargetView(hdr_rtv.Get(), black_color.data());
     ctx->OMSetRenderTargets(1, hdr_rtv.GetAddressOf(), nullptr);
 
     ctx->VSSetShader(shaders->lighting_vs.Get(), nullptr, 0);
     ctx->PSSetShader(shaders->lighting_ps.Get(), nullptr, 0);
-
-    D3D11_VIEWPORT const viewport{
-      .TopLeftX = 0.0F, .TopLeftY = 0.0F,
-      .Width = static_cast<FLOAT>(output_width),
-      .Height = static_cast<FLOAT>(output_height),
-      .MinDepth = 0.0F, .MaxDepth = 1.0F
-    };
 
     ctx->RSSetViewports(1, &viewport);
 
