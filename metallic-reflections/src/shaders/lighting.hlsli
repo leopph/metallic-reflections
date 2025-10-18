@@ -1,9 +1,6 @@
 // ReSharper disable CppEnforceCVQualifiersPlacement
 
 #include "fullscreen_tri.hlsli"
-#include "shader_interop.h"
-
-StructuredBuffer<SphereInfo> g_spheres : register(t0);
 
 struct PsIn {
   float4 pos_os : SV_Position;

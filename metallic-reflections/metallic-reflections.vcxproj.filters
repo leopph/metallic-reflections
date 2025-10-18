@@ -43,15 +43,18 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="src\shaders\lighting_ps.hlsl" />
-    <FxCompile Include="src\shaders\lighting_vs.hlsl" />
-    <FxCompile Include="src\shaders\tonemapping_vs.hlsl" />
-    <FxCompile Include="src\shaders\tonemapping_ps.hlsl" />
+    <FxCompile Include="src\shaders\compile\lighting_ps.hlsl" />
+    <FxCompile Include="src\shaders\compile\lighting_vs.hlsl" />
+    <FxCompile Include="src\shaders\compile\tonemapping_vs.hlsl" />
+    <FxCompile Include="src\shaders\compile\tonemapping_ps.hlsl" />
+    <FxCompile Include="src\shaders\compile\gbuffer_vs.hlsl" />
+    <FxCompile Include="src\shaders\compile\gbuffer_ps.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <None Include="src\shaders\lighting.hlsli" />
     <None Include="src\shaders\tonemapping.hlsli" />
     <None Include="src\shaders\fullscreen_tri.hlsli" />
     <None Include="src\shaders\resource_binding_helpers.hlsli" />
+    <None Include="src\shaders\gbuffer.hlsli" />
   </ItemGroup>
 </Project>

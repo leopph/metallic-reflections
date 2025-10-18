@@ -10,6 +10,8 @@
 
 namespace refl {
 struct ShaderCollection {
+	Microsoft::WRL::ComPtr<ID3D11VertexShader> gbuffer_vs;
+	Microsoft::WRL::ComPtr<ID3D11PixelShader> gbuffer_ps;
   Microsoft::WRL::ComPtr<ID3D11VertexShader> lighting_vs;
   Microsoft::WRL::ComPtr<ID3D11PixelShader> lighting_ps;
   Microsoft::WRL::ComPtr<ID3D11VertexShader> tonemapping_vs;

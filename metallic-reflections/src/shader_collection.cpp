@@ -1,11 +1,15 @@
 #include "shader_collection.hpp"
 
 #ifndef NDEBUG
+#include "shaders/generated/Debug/gbuffer_ps.h"
+#include "shaders/generated/Debug/gbuffer_vs.h"
 #include "shaders/generated/Debug/lighting_ps.h"
 #include "shaders/generated/Debug/lighting_vs.h"
 #include "shaders/generated/Release/tonemapping_ps.h"
 #include "shaders/generated/Release/tonemapping_vs.h"
 #else
+#include "shaders/generated/Release/gbuffer_ps.h"
+#include "shaders/generated/Release/gbuffer_vs.h"
 #include "shaders/generated/Release/lighting_ps.h"
 #include "shaders/generated/Release/lighting_vs.h"
 #include "shaders/generated/Release/tonemapping_ps.h"
@@ -37,6 +41,18 @@ auto LoadShaders(ID3D11Device5& dev) -> std::optional<ShaderCollection> {
   if (FAILED(dev.CreatePixelShader(
     g_tonemapping_ps_bytes, ARRAYSIZE(g_tonemapping_ps_bytes), nullptr,
     &shaders.tonemapping_ps))) {
+    return std::nullopt;
+  }
+
+  if (FAILED(dev.CreateVertexShader(
+    g_gbuffer_vs_bytes, ARRAYSIZE(g_gbuffer_vs_bytes), nullptr,
+    &shaders.gbuffer_vs))) {
+    return std::nullopt;
+  }
+
+  if (FAILED(dev.CreatePixelShader(
+    g_gbuffer_ps_bytes, ARRAYSIZE(g_gbuffer_ps_bytes), nullptr,
+    &shaders.gbuffer_ps))) {
     return std::nullopt;
   }
 
