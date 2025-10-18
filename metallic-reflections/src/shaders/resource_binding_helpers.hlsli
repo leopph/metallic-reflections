@@ -1,0 +1,6 @@
+#ifndef RESOURCE_BINDING_HELPERS_HLSLI
+#define RESOURCE_BINDING_HELPERS_HLSLI
+
+#define MAKE_REGISTER(type, slot) type##slot
+
+#endif

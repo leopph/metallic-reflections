@@ -6,6 +6,9 @@
 using float3 = std::array<float, 3>;
 #endif
 
+#define TONEMAPPING_HDR_TEX_SRV_SLOT 0
+#define TONEMAPPING_SAMPLER_SLOT 0
+
 struct SphereGeometry {
   float3 center_ws;
   float radius;

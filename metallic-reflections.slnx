@@ -2,5 +2,5 @@
   <Configurations>
     <Platform Name="x64" />
   </Configurations>
-  <Project Path="metallic-reflections/metallic-reflections.vcxproj" />
+  <Project Path="metallic-reflections/metallic-reflections.vcxproj" Id="8bfc064c-679c-4993-a144-14aacfe15828" />
 </Solution>
