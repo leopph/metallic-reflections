@@ -44,6 +44,20 @@ auto main() -> int {
   ThrowIfFailed(
     dxgi_factory->EnumAdapterByGpuPreference(0, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(&hp_adapter)));
 
+  ComPtr<IDXGIOutput> output;
+  ThrowIfFailed(hp_adapter->EnumOutputs(0, &output));
+
+  ComPtr<IDXGIOutput6> output6;
+  ThrowIfFailed(output.As(&output6));
+
+  DXGI_OUTPUT_DESC1 output_desc;
+  ThrowIfFailed(output6->GetDesc1(&output_desc));
+
+  SetWindowLongW(hwnd.get(), GWL_STYLE, WS_POPUP);
+  SetWindowPos(hwnd.get(), nullptr, output_desc.DesktopCoordinates.left, output_desc.DesktopCoordinates.top,
+               output_desc.DesktopCoordinates.right - output_desc.DesktopCoordinates.left,
+               output_desc.DesktopCoordinates.bottom - output_desc.DesktopCoordinates.top, SWP_FRAMECHANGED);
+
   UINT d3d_device_flags{0};
 #ifndef NDEBUG
   d3d_device_flags |= D3D11_CREATE_DEVICE_DEBUG;
