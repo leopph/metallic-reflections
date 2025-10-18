@@ -174,19 +174,6 @@ auto main() -> int {
   ComPtr<ID3D11RenderTargetView> sdr_rtv;
   ThrowIfFailed(dev->CreateRenderTargetView(sdr_tex.Get(), &sdr_rtv_desc, &sdr_rtv));
 
-  D3D11_SAMPLER_DESC constexpr sampler_point_clamp_desc{
-    .Filter = D3D11_FILTER_MIN_MAG_MIP_POINT,
-    .AddressU = D3D11_TEXTURE_ADDRESS_CLAMP,
-    .AddressV = D3D11_TEXTURE_ADDRESS_CLAMP,
-    .AddressW = D3D11_TEXTURE_ADDRESS_CLAMP,
-    .MipLODBias = 0,
-    .MaxAnisotropy = 1,
-    .ComparisonFunc = D3D11_COMPARISON_ALWAYS,
-    .BorderColor = {0, 0, 0, 1},
-    .MinLOD = 0,
-    .MaxLOD = D3D11_FLOAT32_MAX
-  };
-
   D3D11_TEXTURE2D_DESC const gbuffer0_tex_desc{
     .Width = output_width,
     .Height = output_height,
@@ -254,6 +241,45 @@ auto main() -> int {
 
   ComPtr<ID3D11ShaderResourceView> gbuffer1_srv;
   ThrowIfFailed(dev->CreateShaderResourceView(gbuffer1_tex.Get(), &gbuffer1_srv_desc, &gbuffer1_srv));
+
+  D3D11_TEXTURE2D_DESC const depth_tex_desc{
+    .Width = output_width,
+    .Height = output_height,
+    .MipLevels = 1,
+    .ArraySize = 1,
+    .Format = DXGI_FORMAT_D32_FLOAT,
+    .SampleDesc = {.Count = 1, .Quality = 0},
+    .Usage = D3D11_USAGE_DEFAULT,
+    .BindFlags = D3D11_BIND_DEPTH_STENCIL,
+    .CPUAccessFlags = 0,
+    .MiscFlags = 0
+  };
+
+  ComPtr<ID3D11Texture2D> depth_tex;
+  ThrowIfFailed(dev->CreateTexture2D(&depth_tex_desc, nullptr, &depth_tex));
+
+  D3D11_DEPTH_STENCIL_VIEW_DESC const depth_tex_dsv_desc{
+    .Format = depth_tex_desc.Format,
+    .ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D,
+    .Flags = 0,
+    .Texture2D = {.MipSlice = 0}
+  };
+
+  ComPtr<ID3D11DepthStencilView> depth_dsv;
+  ThrowIfFailed(dev->CreateDepthStencilView(depth_tex.Get(), &depth_tex_dsv_desc, &depth_dsv));
+
+  D3D11_SAMPLER_DESC constexpr sampler_point_clamp_desc{
+    .Filter = D3D11_FILTER_MIN_MAG_MIP_POINT,
+    .AddressU = D3D11_TEXTURE_ADDRESS_CLAMP,
+    .AddressV = D3D11_TEXTURE_ADDRESS_CLAMP,
+    .AddressW = D3D11_TEXTURE_ADDRESS_CLAMP,
+    .MipLODBias = 0,
+    .MaxAnisotropy = 1,
+    .ComparisonFunc = D3D11_COMPARISON_ALWAYS,
+    .BorderColor = {0, 0, 0, 1},
+    .MinLOD = 0,
+    .MaxLOD = D3D11_FLOAT32_MAX
+  };
 
   ComPtr<ID3D11SamplerState> sampler_point_clamp;
   ThrowIfFailed(dev->CreateSamplerState(&sampler_point_clamp_desc, &sampler_point_clamp));
