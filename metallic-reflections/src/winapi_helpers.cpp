@@ -1,6 +1,6 @@
 #include "winapi_helpers.hpp"
 
-#include <stdexcept>
+import std;
 
 namespace refl {
 auto ThrowIfFailed(HRESULT const hr) -> void {

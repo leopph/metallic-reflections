@@ -8,6 +8,7 @@
 #include <Windows.h>
 #include <wrl/client.h>
 
+#include "scene.hpp"
 #include "shader_collection.hpp"
 #include "winapi_helpers.hpp"
 #include "window.hpp"
@@ -15,7 +16,12 @@
 
 import std;
 
-auto main() -> int {
+auto wmain(int const argc, wchar_t** const argv) -> int {
+  if (argc <= 1) {
+    std::cerr << "Usage: metallic-reflections <path to glTF scene file>\n";
+    return -1;
+  }
+
   auto hwnd{refl::MakeWindow()};
 
   if (!hwnd) {
@@ -285,6 +291,18 @@ auto main() -> int {
   ThrowIfFailed(dev->CreateSamplerState(&sampler_point_clamp_desc, &sampler_point_clamp));
 
   ShowWindow(hwnd.get(), SW_SHOW);
+
+  auto const cpu_scene{refl::LoadCpuScene(argv[1])};
+
+  if (!cpu_scene) {
+    return -1;
+  }
+
+  auto const gpu_scene{refl::CreateGpuScene(*cpu_scene, *dev.Get())};
+
+  if (!gpu_scene) {
+    return -1;
+  }
 
   D3D11_VIEWPORT const viewport{
     .TopLeftX = 0.0F, .TopLeftY = 0.0F,

@@ -27,6 +27,9 @@
     <ClInclude Include="src\shader_collection.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\scene.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">
@@ -39,6 +42,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\shader_collection.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\scene.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\stb_implementation.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -56,5 +65,6 @@
     <None Include="src\shaders\fullscreen_tri.hlsli" />
     <None Include="src\shaders\resource_binding_helpers.hlsli" />
     <None Include="src\shaders\gbuffer.hlsli" />
+    <None Include="vcpkg.json" />
   </ItemGroup>
 </Project>
