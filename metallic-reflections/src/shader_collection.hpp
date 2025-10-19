@@ -16,6 +16,8 @@ struct ShaderCollection {
   Microsoft::WRL::ComPtr<ID3D11PixelShader> lighting_ps;
   Microsoft::WRL::ComPtr<ID3D11VertexShader> tonemapping_vs;
   Microsoft::WRL::ComPtr<ID3D11PixelShader> tonemapping_ps;
+
+  Microsoft::WRL::ComPtr<ID3D11InputLayout> mesh_il;
 };
 
 
