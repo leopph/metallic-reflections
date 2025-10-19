@@ -11,6 +11,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\OrbitingCamera.hpp" />
     <ClInclude Include="src\scene.hpp" />
     <ClInclude Include="src\shaders\shader_interop.h" />
     <ClInclude Include="src\shader_collection.hpp" />
@@ -19,6 +20,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\OrbitingCamera.cpp" />
     <ClCompile Include="src\scene.cpp" />
     <ClCompile Include="src\shader_collection.cpp" />
     <ClCompile Include="src\stb_implementation.cpp" />
