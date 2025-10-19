@@ -453,7 +453,7 @@ auto wmain(int const argc, wchar_t** const argv) -> int {
     (env_cube_size + EQUIRECT_TO_CUBE_THREADS_X - 1) / EQUIRECT_TO_CUBE_THREADS_X
   };
   auto constexpr equirect_to_cube_cs_group_size_y{
-    (env_cube_size + EQUIRECT_TO_CUBE_THREADS_Y - 1) / EQUIRECT_TO_CUBE_THREADS_X
+    (env_cube_size + EQUIRECT_TO_CUBE_THREADS_Y - 1) / EQUIRECT_TO_CUBE_THREADS_Y
   };
   ctx->Dispatch(equirect_to_cube_cs_group_size_x, equirect_to_cube_cs_group_size_y, 6);
 
