@@ -328,16 +328,52 @@ auto wmain(int const argc, wchar_t** const argv) -> int {
       DispatchMessageW(&msg);
     }
 
+    // GBuffer pass
+
+    std::array const gbuffer_rtvs{gbuffer0_rtv.Get(), gbuffer1_rtv.Get()};
+    ctx->OMSetRenderTargets(static_cast<UINT>(gbuffer_rtvs.size()), gbuffer_rtvs.data(), depth_dsv.Get());
+
+    for (auto const rtv : gbuffer_rtvs) {
+      ctx->ClearRenderTargetView(rtv, black_color.data());
+    }
+
+    ctx->ClearDepthStencilView(depth_dsv.Get(), D3D11_CLEAR_DEPTH, 1.0F, 0);
+
+    ctx->VSSetShader(shaders->gbuffer_vs.Get(), nullptr, 0);
+    ctx->PSSetShader(shaders->gbuffer_ps.Get(), nullptr, 0);
+
+    ctx->RSSetViewports(1, &viewport);
+
+    ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    ctx->IASetInputLayout(shaders->mesh_il.Get());
+
+    for (auto const& mesh : gpu_scene->meshes) {
+      std::array const vertex_buffers{
+        mesh.pos_buf.Get(), mesh.norm_buf.Get(), mesh.uv_buf.Get(), mesh.tan_buf.Get()
+      };
+      std::array constexpr strides{
+        16u, 16u, 8u, 16u
+      };
+      std::array constexpr offsets{
+        0u, 0u, 0u, 0u
+      };
+      ctx->IASetVertexBuffers(0, 4, vertex_buffers.data(), strides.data(), offsets.data());
+      ctx->IASetIndexBuffer(mesh.idx_buf.Get(), DXGI_FORMAT_R32_UINT, 0);
+      ctx->DrawIndexed(mesh.idx_count, 0, 0);
+    }
+
+    // Lighting pass
+
     ctx->ClearRenderTargetView(hdr_rtv.Get(), black_color.data());
     ctx->OMSetRenderTargets(1, hdr_rtv.GetAddressOf(), nullptr);
 
     ctx->VSSetShader(shaders->lighting_vs.Get(), nullptr, 0);
     ctx->PSSetShader(shaders->lighting_ps.Get(), nullptr, 0);
 
-    ctx->RSSetViewports(1, &viewport);
 
-    ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     ctx->Draw(3, 0);
+
+    // Tonemapping pass
 
     ctx->OMSetRenderTargets(1, sdr_rtv.GetAddressOf(), nullptr);
 
@@ -349,7 +385,11 @@ auto wmain(int const argc, wchar_t** const argv) -> int {
 
     ctx->Draw(3, 0);
 
+    // Copy to swapchain
+
     ctx->CopyResource(swap_chain_tex.Get(), sdr_tex.Get());
+
+    // Present
 
     ThrowIfFailed(swap_chain->Present(0, present_flags));
   }
