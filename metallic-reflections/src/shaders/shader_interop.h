@@ -21,6 +21,12 @@ using float4x4 = DirectX::XMFLOAT4X4;
 #define CAMERA_CB_SLOT 1
 #define MATERIAL_CB_SLOT 2
 
+#define EQUIRECT_ENV_MAP_SRV_SLOT 0
+#define ENV_CUBE_UAV_SLOT 0
+#define EQUIRECT_ENV_MAP_SAMPLER_SLOT 0
+#define EQUIRECT_TO_CUBE_THREADS_X 8
+#define EQUIRECT_TO_CUBE_THREADS_Y 8
+
 struct Material {
   float3 base_color;
   BOOL has_base_color_map;

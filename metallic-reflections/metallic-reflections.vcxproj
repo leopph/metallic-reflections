@@ -66,8 +66,16 @@
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
+    <FxCompile Include="src\shaders\compile\equirect_to_cube.hlsl">
+      <FileType>Document</FileType>
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">CsMain</EntryPointName>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">CsMain</EntryPointName>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compute</ShaderType>
+    </FxCompile>
     <None Include="src\shaders\fullscreen_tri.hlsli" />
     <None Include="src\shaders\gbuffer.hlsli" />
+    <None Include="src\shaders\equirect_to_cube.hlsli" />
     <None Include="src\shaders\lighting.hlsli" />
     <None Include="src\shaders\resource_binding_helpers.hlsli" />
     <None Include="src\shaders\tonemapping.hlsli" />

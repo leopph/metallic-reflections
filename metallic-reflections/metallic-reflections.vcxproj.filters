@@ -64,6 +64,7 @@
     <FxCompile Include="src\shaders\compile\tonemapping_ps.hlsl" />
     <FxCompile Include="src\shaders\compile\gbuffer_vs.hlsl" />
     <FxCompile Include="src\shaders\compile\gbuffer_ps.hlsl" />
+    <FxCompile Include="src\shaders\compile\equirect_to_cube.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <None Include="src\shaders\lighting.hlsli" />
@@ -72,5 +73,6 @@
     <None Include="src\shaders\resource_binding_helpers.hlsli" />
     <None Include="src\shaders\gbuffer.hlsli" />
     <None Include="vcpkg.json" />
+    <None Include="src\shaders\equirect_to_cube.hlsli" />
   </ItemGroup>
 </Project>

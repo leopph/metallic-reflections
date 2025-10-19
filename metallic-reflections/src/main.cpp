@@ -5,6 +5,7 @@
 #define NOMINMAX
 #include <d3d11_4.h>
 #include <dxgi1_6.h>
+#include <stb_image.h>
 #include <Windows.h>
 #include <wrl/client.h>
 
@@ -18,8 +19,8 @@
 import std;
 
 auto wmain(int const argc, wchar_t** const argv) -> int {
-  if (argc <= 1) {
-    std::cerr << "Usage: metallic-reflections <path to glTF scene file>\n";
+  if (argc <= 2) {
+    std::cerr << "Usage: metallic-reflections <path-to-model-file> <path-to-environment-map>\n";
     return -1;
   }
 
@@ -291,6 +292,22 @@ auto wmain(int const argc, wchar_t** const argv) -> int {
   ComPtr<ID3D11SamplerState> sampler_point_clamp;
   ThrowIfFailed(dev->CreateSamplerState(&sampler_point_clamp_desc, &sampler_point_clamp));
 
+  D3D11_SAMPLER_DESC constexpr sampler_trilinear_clamp_desc{
+    .Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR,
+    .AddressU = D3D11_TEXTURE_ADDRESS_CLAMP,
+    .AddressV = D3D11_TEXTURE_ADDRESS_CLAMP,
+    .AddressW = D3D11_TEXTURE_ADDRESS_CLAMP,
+    .MipLODBias = 0,
+    .MaxAnisotropy = 1,
+    .ComparisonFunc = D3D11_COMPARISON_ALWAYS,
+    .BorderColor = {0, 0, 0, 1},
+    .MinLOD = 0,
+    .MaxLOD = D3D11_FLOAT32_MAX
+  };
+
+  ComPtr<ID3D11SamplerState> sampler_trilinear_clamp;
+  ThrowIfFailed(dev->CreateSamplerState(&sampler_trilinear_clamp_desc, &sampler_trilinear_clamp));
+
   D3D11_BUFFER_DESC constexpr cam_cbuf_desc{
     .ByteWidth = sizeof(CameraConstants),
     .Usage = D3D11_USAGE_DYNAMIC,
@@ -343,6 +360,102 @@ auto wmain(int const argc, wchar_t** const argv) -> int {
   if (!gpu_scene) {
     return -1;
   }
+
+  struct Image {
+    int width;
+    int height;
+    int channel_count;
+    float* data;
+  };
+
+  Image env_map_info;
+  env_map_info.data = stbi_loadf(reinterpret_cast<char const*>(std::filesystem::path{argv[2]}.u8string().data()),
+                                 &env_map_info.width, &env_map_info.height, &env_map_info.channel_count, 4);
+
+  if (!env_map_info.data) {
+    std::cerr << "Failed to load environment map image.\n";
+    return -1;
+  }
+
+  D3D11_TEXTURE2D_DESC const equi_env_map_tex_desc{
+    .Width = static_cast<UINT>(env_map_info.width),
+    .Height = static_cast<UINT>(env_map_info.height),
+    .MipLevels = 1,
+    .ArraySize = 1,
+    .Format = DXGI_FORMAT_R32G32B32A32_FLOAT,
+    .SampleDesc = {.Count = 1, .Quality = 0},
+    .Usage = D3D11_USAGE_IMMUTABLE,
+    .BindFlags = D3D11_BIND_SHADER_RESOURCE,
+    .CPUAccessFlags = 0,
+    .MiscFlags = 0
+  };
+
+  D3D11_SUBRESOURCE_DATA const equi_env_map_tex_data{
+    .pSysMem = env_map_info.data,
+    .SysMemPitch = static_cast<UINT>(env_map_info.width * 4 * sizeof(float)),
+    .SysMemSlicePitch = 0
+  };
+
+  ComPtr<ID3D11Texture2D> equi_env_map_tex;
+  ThrowIfFailed(dev->CreateTexture2D(&equi_env_map_tex_desc, &equi_env_map_tex_data, &equi_env_map_tex));
+
+  D3D11_SHADER_RESOURCE_VIEW_DESC const equi_env_map_srv_desc{
+    .Format = equi_env_map_tex_desc.Format,
+    .ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D,
+    .Texture2D = {.MostDetailedMip = 0, .MipLevels = 1}
+  };
+
+  ComPtr<ID3D11ShaderResourceView> equi_env_map_srv;
+  ThrowIfFailed(dev->CreateShaderResourceView(equi_env_map_tex.Get(), &equi_env_map_srv_desc, &equi_env_map_srv));
+
+  auto constexpr env_cube_size{1024U};
+
+  D3D11_TEXTURE2D_DESC constexpr env_cube_tex_desc{
+    .Width = env_cube_size,
+    .Height = env_cube_size,
+    .MipLevels = 1,
+    .ArraySize = 6,
+    .Format = DXGI_FORMAT_R32G32B32A32_FLOAT,
+    .SampleDesc = {.Count = 1, .Quality = 0},
+    .Usage = D3D11_USAGE_DEFAULT,
+    .BindFlags = D3D11_BIND_UNORDERED_ACCESS | D3D11_BIND_SHADER_RESOURCE,
+    .CPUAccessFlags = 0,
+    .MiscFlags = D3D11_RESOURCE_MISC_TEXTURECUBE
+  };
+
+  ComPtr<ID3D11Texture2D> env_cube_tex;
+  ThrowIfFailed(dev->CreateTexture2D(&env_cube_tex_desc, nullptr, &env_cube_tex));
+
+  D3D11_SHADER_RESOURCE_VIEW_DESC constexpr env_cube_srv_desc{
+    .Format = env_cube_tex_desc.Format,
+    .ViewDimension = D3D11_SRV_DIMENSION_TEXTURECUBE,
+    .TextureCube = {.MostDetailedMip = 0, .MipLevels = 1}
+  };
+
+  ComPtr<ID3D11ShaderResourceView> env_cube_srv;
+  ThrowIfFailed(dev->CreateShaderResourceView(env_cube_tex.Get(), &env_cube_srv_desc, &env_cube_srv));
+
+  D3D11_UNORDERED_ACCESS_VIEW_DESC constexpr env_cube_uav_desc{
+    .Format = env_cube_tex_desc.Format,
+    .ViewDimension = D3D11_UAV_DIMENSION_TEXTURE2DARRAY,
+    .Texture2DArray = {.MipSlice = 0, .FirstArraySlice = 0, .ArraySize = 6}
+  };
+
+  ComPtr<ID3D11UnorderedAccessView> env_cube_uav;
+  ThrowIfFailed(dev->CreateUnorderedAccessView(env_cube_tex.Get(), &env_cube_uav_desc, &env_cube_uav));
+
+  ctx->CSSetShader(shaders->equirect_to_cubemap_cs.Get(), nullptr, 0);
+  ctx->CSSetUnorderedAccessViews(ENV_CUBE_UAV_SLOT, 1, env_cube_uav.GetAddressOf(), nullptr);
+  ctx->CSSetShaderResources(EQUIRECT_ENV_MAP_SRV_SLOT, 1, equi_env_map_srv.GetAddressOf());
+  ctx->CSSetSamplers(EQUIRECT_ENV_MAP_SAMPLER_SLOT, 1, sampler_trilinear_clamp.GetAddressOf());
+
+  auto constexpr equirect_to_cube_cs_group_size_x{
+    (env_cube_size + EQUIRECT_TO_CUBE_THREADS_X - 1) / EQUIRECT_TO_CUBE_THREADS_X
+  };
+  auto constexpr equirect_to_cube_cs_group_size_y{
+    (env_cube_size + EQUIRECT_TO_CUBE_THREADS_Y - 1) / EQUIRECT_TO_CUBE_THREADS_X
+  };
+  ctx->Dispatch(equirect_to_cube_cs_group_size_x, equirect_to_cube_cs_group_size_y, 6);
 
   D3D11_VIEWPORT const viewport{
     .TopLeftX = 0.0F, .TopLeftY = 0.0F,
