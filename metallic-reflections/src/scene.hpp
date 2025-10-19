@@ -43,6 +43,7 @@ struct GpuMesh {
   Microsoft::WRL::ComPtr<ID3D11Buffer> tan_buf; //Vector4s
   Microsoft::WRL::ComPtr<ID3D11Buffer> idx_buf; // u32s
   Microsoft::WRL::ComPtr<ID3D11Buffer> transform_buf; // GpuMeshTransform
+  UINT idx_count;
 };
 
 struct GpuScene {

@@ -212,7 +212,7 @@ auto CreateGpuScene(CpuScene const& cpuScene, ID3D11Device& dev) -> std::optiona
       D3D11_BUFFER_DESC const idx_buf_desc{
         .ByteWidth = static_cast<UINT>(cpu_mesh.indices.size() * sizeof(std::uint32_t)),
         .Usage = D3D11_USAGE_DEFAULT,
-        .BindFlags = D3D11_BIND_VERTEX_BUFFER,
+        .BindFlags = D3D11_BIND_INDEX_BUFFER,
         .CPUAccessFlags = 0,
         .MiscFlags = 0,
         .StructureByteStride = 0
@@ -234,7 +234,7 @@ auto CreateGpuScene(CpuScene const& cpuScene, ID3D11Device& dev) -> std::optiona
       D3D11_BUFFER_DESC const transform_buf_desc{
         .ByteWidth = static_cast<UINT>(sizeof(GpuMeshTransform)),
         .Usage = D3D11_USAGE_DEFAULT,
-        .BindFlags = D3D11_BIND_VERTEX_BUFFER,
+        .BindFlags = D3D11_BIND_CONSTANT_BUFFER,
         .CPUAccessFlags = 0,
         .MiscFlags = 0,
         .StructureByteStride = 0
@@ -251,6 +251,8 @@ auto CreateGpuScene(CpuScene const& cpuScene, ID3D11Device& dev) -> std::optiona
         return std::nullopt;
       }
     }
+
+		gpu_mesh.idx_count = static_cast<UINT>(cpu_mesh.indices.size());
   }
 
   return gpu_scene;
