@@ -8,6 +8,7 @@
 #include <Windows.h>
 #include <wrl/client.h>
 
+#include "OrbitingCamera.hpp"
 #include "scene.hpp"
 #include "shader_collection.hpp"
 #include "winapi_helpers.hpp"
@@ -290,6 +291,45 @@ auto wmain(int const argc, wchar_t** const argv) -> int {
   ComPtr<ID3D11SamplerState> sampler_point_clamp;
   ThrowIfFailed(dev->CreateSamplerState(&sampler_point_clamp_desc, &sampler_point_clamp));
 
+  D3D11_BUFFER_DESC constexpr cam_cbuf_desc{
+    .ByteWidth = sizeof(CameraConstants),
+    .Usage = D3D11_USAGE_DYNAMIC,
+    .BindFlags = D3D11_BIND_CONSTANT_BUFFER,
+    .CPUAccessFlags = D3D11_CPU_ACCESS_WRITE,
+    .MiscFlags = 0,
+    .StructureByteStride = 0
+  };
+
+  ComPtr<ID3D11Buffer> cam_cbuf;
+  ThrowIfFailed(dev->CreateBuffer(&cam_cbuf_desc, nullptr, &cam_cbuf));
+
+  Material constexpr mtl{
+    .base_color = {1, 1, 1},
+    .has_base_color_map = FALSE,
+    .roughness = 0.01F,
+    .has_roughness_map = FALSE,
+    .has_normal_map = FALSE,
+    .pad = 0
+  };
+
+  D3D11_BUFFER_DESC constexpr mtl_cbuf_desc{
+    .ByteWidth = sizeof(mtl),
+    .Usage = D3D11_USAGE_IMMUTABLE,
+    .BindFlags = D3D11_BIND_CONSTANT_BUFFER,
+    .CPUAccessFlags = 0,
+    .MiscFlags = 0,
+    .StructureByteStride = 0
+  };
+
+  D3D11_SUBRESOURCE_DATA const mtl_cbuf_data{
+    .pSysMem = &mtl,
+    .SysMemPitch = 0,
+    .SysMemSlicePitch = 0
+  };
+
+  ComPtr<ID3D11Buffer> mtl_cbuf;
+  ThrowIfFailed(dev->CreateBuffer(&mtl_cbuf_desc, &mtl_cbuf_data, &mtl_cbuf));
+
   ShowWindow(hwnd.get(), SW_SHOW);
 
   auto const cpu_scene{refl::LoadCpuScene(argv[1])};
@@ -313,6 +353,8 @@ auto wmain(int const argc, wchar_t** const argv) -> int {
 
   std::array constexpr black_color{0.0F, 0.0F, 0.0F, 1.0F};
 
+  refl::OrbitingCamera cam{{0, 0, 0}, 0.1F, 0.001F, 1.F, 60.0F};
+
   int ret;
 
   while (true) {
@@ -327,6 +369,26 @@ auto wmain(int const argc, wchar_t** const argv) -> int {
       TranslateMessage(&msg);
       DispatchMessageW(&msg);
     }
+
+    auto const view_mtx{cam.ComputeViewMatrix()};
+    auto const proj_mtx{cam.ComputeProjMatrix(static_cast<float>(output_width) / static_cast<float>(output_height))};
+    DirectX::XMFLOAT4X4 view_proj_mtx;
+    DirectX::XMStoreFloat4x4(&view_proj_mtx,
+                             DirectX::XMMatrixMultiply(DirectX::XMLoadFloat4x4(&view_mtx),
+                                                       DirectX::XMLoadFloat4x4(&proj_mtx)));
+
+    D3D11_MAPPED_SUBRESOURCE mapped_cam_cbuf;
+    ThrowIfFailed(ctx->Map(cam_cbuf.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_cam_cbuf));
+
+    *static_cast<CameraConstants*>(mapped_cam_cbuf.pData) = {
+      .view_mtx = view_mtx,
+      .proj_mtx = proj_mtx,
+      .view_proj_mtx = view_proj_mtx,
+      .position = {},
+      .pad = 0.0F
+    };
+
+    ctx->Unmap(cam_cbuf.Get(), 0);
 
     // GBuffer pass
 
@@ -347,6 +409,9 @@ auto wmain(int const argc, wchar_t** const argv) -> int {
     ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     ctx->IASetInputLayout(shaders->mesh_il.Get());
 
+    ctx->VSSetConstantBuffers(CAMERA_CB_SLOT, 1, cam_cbuf.GetAddressOf());
+    ctx->PSSetConstantBuffers(MATERIAL_CB_SLOT, 1, mtl_cbuf.GetAddressOf());
+
     for (auto const& mesh : gpu_scene->meshes) {
       std::array const vertex_buffers{
         mesh.pos_buf.Get(), mesh.norm_buf.Get(), mesh.uv_buf.Get(), mesh.tan_buf.Get()
@@ -359,6 +424,7 @@ auto wmain(int const argc, wchar_t** const argv) -> int {
       };
       ctx->IASetVertexBuffers(0, 4, vertex_buffers.data(), strides.data(), offsets.data());
       ctx->IASetIndexBuffer(mesh.idx_buf.Get(), DXGI_FORMAT_R32_UINT, 0);
+      ctx->VSSetConstantBuffers(OBJECT_CB_SLOT, 1, mesh.transform_buf.GetAddressOf());
       ctx->DrawIndexed(mesh.idx_count, 0, 0);
     }
 

@@ -3,9 +3,9 @@
 
 #if defined(__cplusplus)
 #define row_major
-#include <array>
-using float3 = std::array<float, 3>;
-using float4x4 = std::array<std::array<float, 4>, 4>;
+#include <DirectXMath.h>
+using float3 = DirectX::XMFLOAT3;
+using float4x4 = DirectX::XMFLOAT4X4;
 #else
 #define BOOL bool
 #endif
