@@ -36,6 +36,15 @@ using uint = std::uint32_t;
 #define ENV_PREFILTER_THREADS_X 8
 #define ENV_PREFILTER_THREADS_Y 8
 
+#define LIGHTING_GBUFFER0_SRV_SLOT 0
+#define LIGHTING_GBUFFER1_SRV_SLOT 1
+#define LIGHTING_DEPTH_SRV_SLOT 2
+#define LIGHTING_ENV_MAP_SRV_SLOT 3
+#define LIGHTING_GBUFFER_SAMPLER_SLOT 0
+#define LIGHTING_ENV_SAMPLER_SLOT 1
+#define LIGHTING_CAM_CB_SLOT 0
+
+
 struct Material {
   float3 base_color;
   BOOL has_base_color_map;
@@ -54,7 +63,8 @@ struct CameraConstants {
   row_major float4x4 view_mtx;
   row_major float4x4 proj_mtx;
   row_major float4x4 view_proj_mtx;
-  float3 position;
+  row_major float4x4 view_proj_inv_mtx;
+  float3 pos_ws;
   float pad;
 };
 

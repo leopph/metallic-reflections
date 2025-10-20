@@ -255,10 +255,10 @@ auto wmain(int const argc, wchar_t** const argv) -> int {
     .Height = output_height,
     .MipLevels = 1,
     .ArraySize = 1,
-    .Format = DXGI_FORMAT_D32_FLOAT,
+    .Format = DXGI_FORMAT_R32_TYPELESS,
     .SampleDesc = {.Count = 1, .Quality = 0},
     .Usage = D3D11_USAGE_DEFAULT,
-    .BindFlags = D3D11_BIND_DEPTH_STENCIL,
+    .BindFlags = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE,
     .CPUAccessFlags = 0,
     .MiscFlags = 0
   };
@@ -266,8 +266,8 @@ auto wmain(int const argc, wchar_t** const argv) -> int {
   ComPtr<ID3D11Texture2D> depth_tex;
   ThrowIfFailed(dev->CreateTexture2D(&depth_tex_desc, nullptr, &depth_tex));
 
-  D3D11_DEPTH_STENCIL_VIEW_DESC const depth_tex_dsv_desc{
-    .Format = depth_tex_desc.Format,
+  D3D11_DEPTH_STENCIL_VIEW_DESC constexpr depth_tex_dsv_desc{
+    .Format = DXGI_FORMAT_D32_FLOAT,
     .ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D,
     .Flags = 0,
     .Texture2D = {.MipSlice = 0}
@@ -275,6 +275,15 @@ auto wmain(int const argc, wchar_t** const argv) -> int {
 
   ComPtr<ID3D11DepthStencilView> depth_dsv;
   ThrowIfFailed(dev->CreateDepthStencilView(depth_tex.Get(), &depth_tex_dsv_desc, &depth_dsv));
+
+  D3D11_SHADER_RESOURCE_VIEW_DESC constexpr depth_srv_desc{
+    .Format = DXGI_FORMAT_R32_FLOAT,
+    .ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D,
+    .Texture2D = {.MostDetailedMip = 0, .MipLevels = 1}
+  };
+
+  ComPtr<ID3D11ShaderResourceView> depth_srv;
+  ThrowIfFailed(dev->CreateShaderResourceView(depth_tex.Get(), &depth_srv_desc, &depth_srv));
 
   D3D11_SAMPLER_DESC constexpr sampler_point_clamp_desc{
     .Filter = D3D11_FILTER_MIN_MAG_MIP_POINT,
@@ -439,9 +448,9 @@ auto wmain(int const argc, wchar_t** const argv) -> int {
   ThrowIfFailed(dev->CreateShaderResourceView(env_cube_tex.Get(), &env_cube_mip0_srv_desc, &env_cube_mip0_srv));
 
   D3D11_SHADER_RESOURCE_VIEW_DESC const env_cube_all_mips_srv_desc{
-  .Format = env_cube_tex_desc.Format,
-  .ViewDimension = D3D11_SRV_DIMENSION_TEXTURECUBE,
-  .TextureCube = {.MostDetailedMip = 0, .MipLevels = env_cube_mip_count}
+    .Format = env_cube_tex_desc.Format,
+    .ViewDimension = D3D11_SRV_DIMENSION_TEXTURECUBE,
+    .TextureCube = {.MostDetailedMip = 0, .MipLevels = env_cube_mip_count}
   };
 
   ComPtr<ID3D11ShaderResourceView> env_cube_all_mips_srv;
@@ -468,6 +477,9 @@ auto wmain(int const argc, wchar_t** const argv) -> int {
     (env_cube_size + EQUIRECT_TO_CUBE_THREADS_Y - 1) / EQUIRECT_TO_CUBE_THREADS_Y
   };
   ctx->Dispatch(equirect_to_cube_cs_group_size_x, equirect_to_cube_cs_group_size_y, 6);
+
+  ComPtr<ID3D11UnorderedAccessView> const null_uav{nullptr};
+  ctx->CSSetUnorderedAccessViews(ENV_CUBE_UAV_SLOT, 1, null_uav.GetAddressOf(), nullptr);
 
   D3D11_BUFFER_DESC constexpr env_prefilter_cbv_desc{
     .ByteWidth = sizeof(EnvPrefilterConstants),
@@ -507,13 +519,14 @@ auto wmain(int const argc, wchar_t** const argv) -> int {
     ctx->CSSetUnorderedAccessViews(ENV_PREFILTER_ENV_CUBE_UAV_SLOT, 1, env_cube_mip_uav.GetAddressOf(), nullptr);
     ctx->CSSetShaderResources(ENV_PREFILTER_CUBE_SRV_SLOT, 1, env_cube_mip0_srv.GetAddressOf());
     ctx->CSSetConstantBuffers(ENV_PREFILTER_CB_SLOT, 1, env_prefilter_cbv.GetAddressOf());
-		ctx->CSSetSamplers(ENV_PREFILTER_SAMPLER_SLOT, 1, sampler_trilinear_clamp.GetAddressOf());
+    ctx->CSSetSamplers(ENV_PREFILTER_SAMPLER_SLOT, 1, sampler_trilinear_clamp.GetAddressOf());
 
     auto const mip_size{std::max(env_cube_size >> mip, 1u)};
     auto const group_count_x{std::ceil(mip_size / static_cast<float>(ENV_PREFILTER_THREADS_X))};
     auto const group_count_y{std::ceil(mip_size / static_cast<float>(ENV_PREFILTER_THREADS_Y))};
     ctx->Dispatch(static_cast<UINT>(group_count_x), static_cast<UINT>(group_count_y), 6);
   }
+  ctx->CSSetUnorderedAccessViews(ENV_PREFILTER_ENV_CUBE_UAV_SLOT, 1, null_uav.GetAddressOf(), nullptr);
 
   D3D11_VIEWPORT const viewport{
     .TopLeftX = 0.0F, .TopLeftY = 0.0F,
@@ -543,10 +556,13 @@ auto wmain(int const argc, wchar_t** const argv) -> int {
 
     auto const view_mtx{cam.ComputeViewMatrix()};
     auto const proj_mtx{cam.ComputeProjMatrix(static_cast<float>(output_width) / static_cast<float>(output_height))};
+    auto const xm_view_proj_mtx{
+      DirectX::XMMatrixMultiply(DirectX::XMLoadFloat4x4(&view_mtx), DirectX::XMLoadFloat4x4(&proj_mtx))
+    };
     DirectX::XMFLOAT4X4 view_proj_mtx;
-    DirectX::XMStoreFloat4x4(&view_proj_mtx,
-                             DirectX::XMMatrixMultiply(DirectX::XMLoadFloat4x4(&view_mtx),
-                                                       DirectX::XMLoadFloat4x4(&proj_mtx)));
+    DirectX::XMStoreFloat4x4(&view_proj_mtx, xm_view_proj_mtx);
+    DirectX::XMFLOAT4X4 view_proj_inv_mtx;
+    DirectX::XMStoreFloat4x4(&view_proj_inv_mtx, DirectX::XMMatrixInverse(nullptr, xm_view_proj_mtx));
 
     D3D11_MAPPED_SUBRESOURCE mapped_cam_cbuf;
     ThrowIfFailed(ctx->Map(cam_cbuf.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_cam_cbuf));
@@ -555,7 +571,8 @@ auto wmain(int const argc, wchar_t** const argv) -> int {
       .view_mtx = view_mtx,
       .proj_mtx = proj_mtx,
       .view_proj_mtx = view_proj_mtx,
-      .position = {},
+      .view_proj_inv_mtx = view_proj_inv_mtx,
+      .pos_ws = cam.ComputePosition(),
       .pad = 0.0F
     };
 
@@ -608,6 +625,13 @@ auto wmain(int const argc, wchar_t** const argv) -> int {
     ctx->VSSetShader(shaders->lighting_vs.Get(), nullptr, 0);
     ctx->PSSetShader(shaders->lighting_ps.Get(), nullptr, 0);
 
+    ctx->PSSetConstantBuffers(LIGHTING_CAM_CB_SLOT, 1, cam_cbuf.GetAddressOf());
+    ctx->PSSetShaderResources(LIGHTING_GBUFFER0_SRV_SLOT, 1, gbuffer0_srv.GetAddressOf());
+    ctx->PSSetShaderResources(LIGHTING_GBUFFER1_SRV_SLOT, 1, gbuffer1_srv.GetAddressOf());
+    ctx->PSSetShaderResources(LIGHTING_DEPTH_SRV_SLOT, 1, depth_srv.GetAddressOf());
+    ctx->PSSetShaderResources(LIGHTING_ENV_MAP_SRV_SLOT, 1, env_cube_all_mips_srv.GetAddressOf());
+    ctx->PSSetSamplers(LIGHTING_GBUFFER_SAMPLER_SLOT, 1, sampler_point_clamp.GetAddressOf());
+    ctx->PSSetSamplers(LIGHTING_ENV_SAMPLER_SLOT, 1, sampler_trilinear_clamp.GetAddressOf());
 
     ctx->Draw(3, 0);
 

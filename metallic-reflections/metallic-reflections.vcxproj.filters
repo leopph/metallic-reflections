@@ -77,5 +77,6 @@
     <None Include="src\shaders\equirect_to_cube.hlsli" />
     <None Include="src\shaders\env_prefilter.hlsli" />
     <None Include="src\shaders\constants.hlsli" />
+    <None Include="src\shaders\brdf.hlsli" />
   </ItemGroup>
 </Project>

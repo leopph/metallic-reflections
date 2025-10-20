@@ -7,6 +7,16 @@ OrbitingCamera::OrbitingCamera(DirectX::XMFLOAT3 const& orbit_center, float cons
   vertical_fov_degrees_{vertical_fov_degrees} {
 }
 
+auto OrbitingCamera::ComputePosition() const -> DirectX::XMFLOAT3 {
+  using namespace DirectX;
+  XMVECTOR const rotation_quat{XMLoadFloat4(&rotation_)};
+  XMVECTOR const forward_vec{XMVector3Rotate(XMVectorSet(0.0F, 0.0F, 1.0F, 0.0F), rotation_quat)};
+  XMVECTOR const camera_pos{XMVectorAdd(XMLoadFloat3(&orbit_center_), XMVectorScale(forward_vec, -orbit_dist_))};
+  XMFLOAT3 camera_pos_float3;
+  XMStoreFloat3(&camera_pos_float3, camera_pos);
+  return camera_pos_float3;
+}
+
 auto OrbitingCamera::ComputeViewMatrix() const -> DirectX::XMFLOAT4X4 {
   using namespace DirectX;
 
