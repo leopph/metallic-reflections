@@ -61,7 +61,9 @@ struct ObjectConstants {
 
 struct CameraConstants {
   row_major float4x4 view_mtx;
+  row_major float4x4 view_inv_mtx;
   row_major float4x4 proj_mtx;
+  row_major float4x4 proj_inv_mtx;
   row_major float4x4 view_proj_mtx;
   row_major float4x4 view_proj_inv_mtx;
   float3 pos_ws;

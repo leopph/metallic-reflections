@@ -565,20 +565,31 @@ auto wmain(int const argc, wchar_t** const argv) -> int {
 
     auto const view_mtx{cam.ComputeViewMatrix()};
     auto const proj_mtx{cam.ComputeProjMatrix(static_cast<float>(output_width) / static_cast<float>(output_height))};
-    auto const xm_view_proj_mtx{
-      DirectX::XMMatrixMultiply(DirectX::XMLoadFloat4x4(&view_mtx), DirectX::XMLoadFloat4x4(&proj_mtx))
-    };
+
+    auto const xm_view_mtx{DirectX::XMLoadFloat4x4(&view_mtx)};
+    auto const xm_view_inv_mtx{DirectX::XMMatrixInverse(nullptr, xm_view_mtx)};
+    auto const xm_proj_mtx{DirectX::XMLoadFloat4x4(&proj_mtx)};
+    auto const xm_proj_inv_mtx{DirectX::XMMatrixInverse(nullptr, xm_proj_mtx)};
+    auto const xm_view_proj_mtx{DirectX::XMMatrixMultiply(xm_view_mtx, xm_proj_mtx)};
+    auto const xm_view_proj_inv_mtx{DirectX::XMMatrixInverse(nullptr, xm_view_proj_mtx)};
+
+    DirectX::XMFLOAT4X4 view_inv_mtx;
+    DirectX::XMStoreFloat4x4(&view_inv_mtx, xm_view_inv_mtx);
+    DirectX::XMFLOAT4X4 proj_inv_mtx;
+    DirectX::XMStoreFloat4x4(&proj_inv_mtx, xm_proj_inv_mtx);
     DirectX::XMFLOAT4X4 view_proj_mtx;
     DirectX::XMStoreFloat4x4(&view_proj_mtx, xm_view_proj_mtx);
     DirectX::XMFLOAT4X4 view_proj_inv_mtx;
-    DirectX::XMStoreFloat4x4(&view_proj_inv_mtx, DirectX::XMMatrixInverse(nullptr, xm_view_proj_mtx));
+    DirectX::XMStoreFloat4x4(&view_proj_inv_mtx, xm_view_proj_inv_mtx);
 
     D3D11_MAPPED_SUBRESOURCE mapped_cam_cbuf;
     ThrowIfFailed(ctx->Map(cam_cbuf.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_cam_cbuf));
 
     *static_cast<CameraConstants*>(mapped_cam_cbuf.pData) = {
       .view_mtx = view_mtx,
+      .view_inv_mtx = view_inv_mtx,
       .proj_mtx = proj_mtx,
+      .proj_inv_mtx = proj_inv_mtx,
       .view_proj_mtx = view_proj_mtx,
       .view_proj_inv_mtx = view_proj_inv_mtx,
       .pos_ws = cam.ComputePosition(),
@@ -665,7 +676,7 @@ auto wmain(int const argc, wchar_t** const argv) -> int {
     ThrowIfFailed(swap_chain->Present(0, present_flags));
 
     begin = end;
-		end = std::chrono::steady_clock::now();
+    end = std::chrono::steady_clock::now();
   }
 
   return ret;

@@ -80,6 +80,7 @@
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compute</ShaderType>
     </FxCompile>
     <None Include="src\shaders\brdf.hlsli" />
+    <None Include="src\shaders\change_of_basis.hlsli" />
     <None Include="src\shaders\constants.hlsli" />
     <None Include="src\shaders\env_prefilter.hlsli" />
     <None Include="src\shaders\fullscreen_tri.hlsli" />

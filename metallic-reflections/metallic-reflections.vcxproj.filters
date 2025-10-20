@@ -78,5 +78,6 @@
     <None Include="src\shaders\env_prefilter.hlsli" />
     <None Include="src\shaders\constants.hlsli" />
     <None Include="src\shaders\brdf.hlsli" />
+    <None Include="src\shaders\change_of_basis.hlsli" />
   </ItemGroup>
 </Project>
