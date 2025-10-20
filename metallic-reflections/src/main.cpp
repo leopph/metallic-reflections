@@ -408,6 +408,9 @@ auto wmain(int const argc, wchar_t** const argv) -> int {
   ComPtr<ID3D11Texture2D> equi_env_map_tex;
   ThrowIfFailed(dev->CreateTexture2D(&equi_env_map_tex_desc, &equi_env_map_tex_data, &equi_env_map_tex));
 
+  stbi_image_free(env_map_info.data);
+  env_map_info.data = nullptr;
+
   D3D11_SHADER_RESOURCE_VIEW_DESC const equi_env_map_srv_desc{
     .Format = equi_env_map_tex_desc.Format,
     .ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D,
