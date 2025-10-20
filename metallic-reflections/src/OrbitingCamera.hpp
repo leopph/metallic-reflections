@@ -8,6 +8,8 @@ public:
   OrbitingCamera(DirectX::XMFLOAT3 const& orbit_center, float orbit_dist, float near_clip, float far_clip,
                  float vertical_fov_degrees);
 
+  auto Rotate(float yaw_degrees) -> void;
+
   [[nodiscard]] auto ComputePosition() const -> DirectX::XMFLOAT3;
   [[nodiscard]] auto ComputeViewMatrix() const -> DirectX::XMFLOAT4X4;
   [[nodiscard]] auto ComputeProjMatrix(float aspect_ratio) const -> DirectX::XMFLOAT4X4;

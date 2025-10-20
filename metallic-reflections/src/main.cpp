@@ -541,7 +541,14 @@ auto wmain(int const argc, wchar_t** const argv) -> int {
 
   int ret;
 
+  auto begin{std::chrono::steady_clock::now()};
+  auto end{begin};
+
   while (true) {
+    auto const delta_time{
+      static_cast<float>(std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count()) / 1000.0f
+    };
+
     MSG msg;
 
     if (PeekMessageW(&msg, nullptr, 0, 0, PM_REMOVE)) {
@@ -553,6 +560,8 @@ auto wmain(int const argc, wchar_t** const argv) -> int {
       TranslateMessage(&msg);
       DispatchMessageW(&msg);
     }
+
+    cam.Rotate(30 * delta_time);
 
     auto const view_mtx{cam.ComputeViewMatrix()};
     auto const proj_mtx{cam.ComputeProjMatrix(static_cast<float>(output_width) / static_cast<float>(output_height))};
@@ -654,6 +663,9 @@ auto wmain(int const argc, wchar_t** const argv) -> int {
     // Present
 
     ThrowIfFailed(swap_chain->Present(0, present_flags));
+
+    begin = end;
+		end = std::chrono::steady_clock::now();
   }
 
   return ret;

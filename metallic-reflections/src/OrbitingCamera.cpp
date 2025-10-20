@@ -7,6 +7,15 @@ OrbitingCamera::OrbitingCamera(DirectX::XMFLOAT3 const& orbit_center, float cons
   vertical_fov_degrees_{vertical_fov_degrees} {
 }
 
+auto OrbitingCamera::Rotate(float const yaw_degrees) -> void {
+  using namespace DirectX;
+  XMVECTOR const current_rotation_quat{XMLoadFloat4(&rotation_)};
+  float const yaw_radians{XMConvertToRadians(yaw_degrees)};
+  XMVECTOR const yaw_rotation_quat{XMQuaternionRotationAxis(XMVectorSet(0.0F, 1.0F, 0.0F, 0.0F), yaw_radians)};
+  XMVECTOR const new_rotation_quat{XMQuaternionMultiply(yaw_rotation_quat, current_rotation_quat)};
+  XMStoreFloat4(&rotation_, new_rotation_quat);
+}
+
 auto OrbitingCamera::ComputePosition() const -> DirectX::XMFLOAT3 {
   using namespace DirectX;
   XMVECTOR const rotation_quat{XMLoadFloat4(&rotation_)};
