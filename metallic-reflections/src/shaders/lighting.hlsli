@@ -39,7 +39,7 @@ float4 PsMain(const PsIn ps_in) : SV_Target {
   const float roughness = gbuffer0_data.a;
   const float3 normal_ws = gbuffer1_data.rgb;
 
-  float4 pos_ws = mul(float4(ps_in.uv * 2 - 1, depth, 1), g_cam_constants.view_proj_inv_mtx);
+  float4 pos_ws = mul(float4(ps_in.uv * float2(2, -2) + float2(-1, 1), depth, 1), g_cam_constants.view_proj_inv_mtx);
   pos_ws /= pos_ws.w;
 
   const float3 V = normalize(g_cam_constants.pos_ws - pos_ws.xyz);
