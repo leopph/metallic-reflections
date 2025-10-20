@@ -3,6 +3,7 @@
 #ifndef EQUIRECT_TO_CUBE_HLSLI
 #define EQUIRECT_TO_CUBE_HLSLI
 
+#include "change_of_basis.hlsli"
 #include "constants.hlsli"
 #include "resource_binding_helpers.hlsli"
 #include "shader_interop.h"
@@ -23,29 +24,29 @@ void CsMain(const uint3 dtid : SV_DispatchThreadID) {
   if (x >= cube_map_size.x || y >= cube_map_size.y || face >= cube_map_size.z) {
     return;
   }
-
-  const float2 uv = float2(x, y) / float2(cube_map_size.xy) * 2.0 - 1.0;
+  
+  const float2 ndc = UvToNdc((float2(x, y) + 0.5) / float2(cube_map_size.xy));
 
   float3 dir = float3(1, 0, 0);
 
   switch (face) {
   case 0:
-    dir = normalize(float3(1, uv.y, -uv.x));
+    dir = normalize(float3(1, ndc.y, -ndc.x));
     break;
   case 1:
-    dir = normalize(float3(-1, uv.y, uv.x));
+    dir = normalize(float3(-1, ndc.y, ndc.x));
     break;
   case 2:
-    dir = normalize(float3(uv.x, 1, -uv.y));
+    dir = normalize(float3(ndc.x, 1, ndc.y));
     break;
   case 3:
-    dir = normalize(float3(uv.x, -1, uv.y));
+    dir = normalize(float3(ndc.x, -1, -ndc.y));
     break;
   case 4:
-    dir = normalize(float3(uv.x, uv.y, 1));
+    dir = normalize(float3(ndc.x, ndc.y, 1));
     break;
   case 5:
-    dir = normalize(float3(-uv.x, uv.y, -1));
+    dir = normalize(float3(-ndc.x, ndc.y, -1));
     break;
   }
 
