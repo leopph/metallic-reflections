@@ -582,6 +582,7 @@ auto wmain(int const argc, wchar_t** const argv) -> int {
 
     ctx->VSSetConstantBuffers(CAMERA_CB_SLOT, 1, cam_cbuf.GetAddressOf());
     ctx->PSSetConstantBuffers(MATERIAL_CB_SLOT, 1, mtl_cbuf.GetAddressOf());
+    ctx->PSSetSamplers(MATERIAL_SAMPLER_SLOT, 1, sampler_trilinear_clamp.GetAddressOf());
 
     for (auto const& mesh : gpu_scene->meshes) {
       std::array const vertex_buffers{
