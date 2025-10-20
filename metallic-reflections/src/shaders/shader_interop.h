@@ -3,9 +3,11 @@
 
 #if defined(__cplusplus)
 #define row_major
+#include <cstdint>
 #include <DirectXMath.h>
 using float3 = DirectX::XMFLOAT3;
 using float4x4 = DirectX::XMFLOAT4X4;
+using uint = std::uint32_t;
 #else
 #define BOOL bool
 #endif
@@ -27,6 +29,13 @@ using float4x4 = DirectX::XMFLOAT4X4;
 #define EQUIRECT_TO_CUBE_THREADS_X 8
 #define EQUIRECT_TO_CUBE_THREADS_Y 8
 
+#define ENV_PREFILTER_CUBE_SRV_SLOT 0
+#define ENV_PREFILTER_ENV_CUBE_UAV_SLOT 0
+#define ENV_PREFILTER_SAMPLER_SLOT 0
+#define ENV_PREFILTER_CB_SLOT 0
+#define ENV_PREFILTER_THREADS_X 8
+#define ENV_PREFILTER_THREADS_Y 8
+
 struct Material {
   float3 base_color;
   BOOL has_base_color_map;
@@ -47,6 +56,13 @@ struct CameraConstants {
   row_major float4x4 view_proj_mtx;
   float3 position;
   float pad;
+};
+
+struct EnvPrefilterConstants {
+  uint cur_mip; // 0 is original env map
+  uint num_mips;
+  uint face_base_size; // Size of face at mip 0
+  uint sample_count; // Number of GGX samples to use for this prefiltering pass
 };
 
 #endif

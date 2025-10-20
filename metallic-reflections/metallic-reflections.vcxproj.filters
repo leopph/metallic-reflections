@@ -65,6 +65,7 @@
     <FxCompile Include="src\shaders\compile\gbuffer_vs.hlsl" />
     <FxCompile Include="src\shaders\compile\gbuffer_ps.hlsl" />
     <FxCompile Include="src\shaders\compile\equirect_to_cube.hlsl" />
+    <FxCompile Include="src\shaders\compile\env_prefilter_cs.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <None Include="src\shaders\lighting.hlsli" />
@@ -74,5 +75,7 @@
     <None Include="src\shaders\gbuffer.hlsli" />
     <None Include="vcpkg.json" />
     <None Include="src\shaders\equirect_to_cube.hlsli" />
+    <None Include="src\shaders\env_prefilter.hlsli" />
+    <None Include="src\shaders\constants.hlsli" />
   </ItemGroup>
 </Project>

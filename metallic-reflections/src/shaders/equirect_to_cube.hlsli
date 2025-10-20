@@ -3,14 +3,13 @@
 #ifndef EQUIRECT_TO_CUBE_HLSLI
 #define EQUIRECT_TO_CUBE_HLSLI
 
+#include "constants.hlsli"
 #include "resource_binding_helpers.hlsli"
 #include "shader_interop.h"
 
 Texture2D<float3> g_equi_env_map : register(MAKE_REGISTER(t, EQUIRECT_ENV_MAP_SRV_SLOT));
 RWTexture2DArray<float4> g_cube_env_map : register(MAKE_REGISTER(u, ENV_CUBE_UAV_SLOT));
 SamplerState g_sampler : register(MAKE_REGISTER(s, EQUIRECT_ENV_MAP_SAMPLER_SLOT));
-
-static const float kPi = 3.14159265f;
 
 [numthreads(EQUIRECT_TO_CUBE_THREADS_X, EQUIRECT_TO_CUBE_THREADS_Y, 1)]
 void CsMain(const uint3 dtid : SV_DispatchThreadID) {

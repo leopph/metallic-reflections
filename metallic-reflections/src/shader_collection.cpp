@@ -1,6 +1,7 @@
 #include "shader_collection.hpp"
 
 #ifndef NDEBUG
+#include "shaders/generated/Debug/env_prefilter_cs.h"
 #include "shaders/generated/Debug/equirect_to_cube.h"
 #include "shaders/generated/Debug/gbuffer_ps.h"
 #include "shaders/generated/Debug/gbuffer_vs.h"
@@ -9,6 +10,7 @@
 #include "shaders/generated/Debug/tonemapping_ps.h"
 #include "shaders/generated/Debug/tonemapping_vs.h"
 #else
+#include "shaders/generated/Release/env_prefilter_cs.h"
 #include "shaders/generated/Release/equirect_to_cube.h"
 #include "shaders/generated/Release/gbuffer_ps.h"
 #include "shaders/generated/Release/gbuffer_vs.h"
@@ -63,6 +65,12 @@ auto LoadShaders(ID3D11Device5& dev) -> std::optional<ShaderCollection> {
   if (FAILED(dev.CreateComputeShader(
     g_equirect_to_cube_bytes, ARRAYSIZE(g_equirect_to_cube_bytes), nullptr,
     &shaders.equirect_to_cubemap_cs))) {
+    return std::nullopt;
+  }
+
+  if (FAILED(dev.CreateComputeShader(
+    g_env_prefilter_cs_bytes, ARRAYSIZE(g_env_prefilter_cs_bytes), nullptr,
+    &shaders.env_prefilter_cs))) {
     return std::nullopt;
   }
 
