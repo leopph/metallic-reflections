@@ -55,7 +55,10 @@ float4 PsMain(const PsIn ps_in) : SV_Target {
   const float roughness = gbuffer0_data.a;
   const float3 normal_ws = gbuffer1_data.rgb;
 
-  const float3 V = ReconstructWorldDir(ps_in.uv);
+  const float4 pos_ws_hs = mul(float4(UvToNdc(ps_in.uv), depth, 1), g_cam_constants.view_proj_inv_mtx);
+  const float3 pos_ws = pos_ws_hs.xyz / pos_ws_hs.w;
+
+  const float3 V = normalize(g_cam_constants.pos_ws - pos_ws);
   const float3 R = reflect(-V, normal_ws);
 
   float3 env_map_size; // width, height, mips
