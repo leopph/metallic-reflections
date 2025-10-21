@@ -3,6 +3,7 @@
 #ifndef ENV_PREFILTER_HLSLI
 #define ENV_PREFILTER_HLSLI
 
+#include "brdf.hlsli"
 #include "constants.hlsli"
 #include "resource_binding_helpers.hlsli"
 #include "shader_interop.h"
@@ -113,21 +114,33 @@ void CsMain(const uint3 dtid : SV_DispatchThreadID) {
   [loop]
   for (uint i = 0; i < g_constants.sample_count; i++) {
     const float2 xi = Hammersley(i, g_constants.sample_count);
-    const float3 m_tan = SampleGgxNdf(xi, alpha);
+    const float3 H_tan = SampleGgxNdf(xi, alpha);
 
     // Microfacet normal in world space
-    const float3 m = normalize(m_tan.x * T + m_tan.y * B + m_tan.z * N);
+    const float3 H = normalize(H_tan.x * T + H_tan.y * B + H_tan.z * N);
 
     // Reflect view about microfacet
-    const float3 L = reflect(-V, m);
-    const float n_dot_l = dot(N, L);
+    const float3 L = reflect(-V, H);
+    const float n_dot_l = saturate(dot(N, L));
 
     if (n_dot_l <= 0) {
       continue;
     }
 
+    // Sample from the environment's mip level based on roughness/pdf
+
+    const float n_dot_h = saturate(dot(N, H));
+    const float D = DistributionTrowbridgeReitz(n_dot_h, roughness);
+    const float v_dot_h = saturate(dot(V, H));
+    const float pdf = D * n_dot_h / (4.0 * v_dot_h);
+
+    const float omega_s = 1.0 / (float(g_constants.sample_count) * pdf);
+    const float omega_p = 4.0 * kPi / (6.0 * float(g_constants.face_base_size) * float(g_constants.face_base_size));
+
+    const float mip = 0.5 * log2(omega_s / omega_p);
+
     // Sample the environment map at mip 0
-    const float4 env = g_env_map.SampleLevel(g_sampler, L, 0);
+    const float4 env = g_env_map.SampleLevel(g_sampler, L, mip);
 
     // Accumulate weighted cosie term
     accum_color += env.rgb * n_dot_l;

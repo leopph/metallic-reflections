@@ -370,6 +370,8 @@ auto wmain(int const argc, wchar_t** const argv) -> int {
     return -1;
   }
 
+  // Load environment map from disk
+
   struct Image {
     int width;
     int height;
@@ -385,6 +387,8 @@ auto wmain(int const argc, wchar_t** const argv) -> int {
     std::cerr << "Failed to load environment map image.\n";
     return -1;
   }
+
+  // Create 2D texture and SRV for equirectangular environment map
 
   D3D11_TEXTURE2D_DESC const equi_env_map_tex_desc{
     .Width = static_cast<UINT>(env_map_info.width),
@@ -420,7 +424,9 @@ auto wmain(int const argc, wchar_t** const argv) -> int {
   ComPtr<ID3D11ShaderResourceView> equi_env_map_srv;
   ThrowIfFailed(dev->CreateShaderResourceView(equi_env_map_tex.Get(), &equi_env_map_srv_desc, &equi_env_map_srv));
 
-  auto constexpr env_cube_size{1024U};
+  // Create cubemap texture for environment map
+
+  auto constexpr env_cube_size{1024u};
   auto const env_cube_mip_count{
     static_cast<UINT>(std::floor(std::log2(static_cast<float>(env_cube_size)))) + 1U
   };
@@ -433,31 +439,15 @@ auto wmain(int const argc, wchar_t** const argv) -> int {
     .Format = DXGI_FORMAT_R32G32B32A32_FLOAT,
     .SampleDesc = {.Count = 1, .Quality = 0},
     .Usage = D3D11_USAGE_DEFAULT,
-    .BindFlags = D3D11_BIND_UNORDERED_ACCESS | D3D11_BIND_SHADER_RESOURCE,
+    .BindFlags = D3D11_BIND_UNORDERED_ACCESS | D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET,
     .CPUAccessFlags = 0,
-    .MiscFlags = D3D11_RESOURCE_MISC_TEXTURECUBE
+    .MiscFlags = D3D11_RESOURCE_MISC_TEXTURECUBE | D3D11_RESOURCE_MISC_GENERATE_MIPS
   };
 
   ComPtr<ID3D11Texture2D> env_cube_tex;
   ThrowIfFailed(dev->CreateTexture2D(&env_cube_tex_desc, nullptr, &env_cube_tex));
 
-  D3D11_SHADER_RESOURCE_VIEW_DESC const env_cube_mip0_srv_desc{
-    .Format = env_cube_tex_desc.Format,
-    .ViewDimension = D3D11_SRV_DIMENSION_TEXTURECUBE,
-    .TextureCube = {.MostDetailedMip = 0, .MipLevels = 1}
-  };
-
-  ComPtr<ID3D11ShaderResourceView> env_cube_mip0_srv;
-  ThrowIfFailed(dev->CreateShaderResourceView(env_cube_tex.Get(), &env_cube_mip0_srv_desc, &env_cube_mip0_srv));
-
-  D3D11_SHADER_RESOURCE_VIEW_DESC const env_cube_all_mips_srv_desc{
-    .Format = env_cube_tex_desc.Format,
-    .ViewDimension = D3D11_SRV_DIMENSION_TEXTURECUBE,
-    .TextureCube = {.MostDetailedMip = 0, .MipLevels = env_cube_mip_count}
-  };
-
-  ComPtr<ID3D11ShaderResourceView> env_cube_all_mips_srv;
-  ThrowIfFailed(dev->CreateShaderResourceView(env_cube_tex.Get(), &env_cube_all_mips_srv_desc, &env_cube_all_mips_srv));
+  // Render equirectangular environment map to cubemap mip0
 
   D3D11_UNORDERED_ACCESS_VIEW_DESC const env_cube_mip0_uav_desc{
     .Format = env_cube_tex_desc.Format,
@@ -484,6 +474,47 @@ auto wmain(int const argc, wchar_t** const argv) -> int {
   ComPtr<ID3D11UnorderedAccessView> const null_uav{nullptr};
   ctx->CSSetUnorderedAccessViews(ENV_CUBE_UAV_SLOT, 1, null_uav.GetAddressOf(), nullptr);
 
+  // Generate mips for environment cubemap
+
+  D3D11_SHADER_RESOURCE_VIEW_DESC const env_cube_srv_desc{
+    .Format = env_cube_tex_desc.Format,
+    .ViewDimension = D3D11_SRV_DIMENSION_TEXTURECUBE,
+    .TextureCube = {.MostDetailedMip = 0, .MipLevels = env_cube_mip_count}
+  };
+
+  ComPtr<ID3D11ShaderResourceView> env_cube_srv;
+  ThrowIfFailed(dev->CreateShaderResourceView(env_cube_tex.Get(), &env_cube_srv_desc, &env_cube_srv));
+
+  ctx->GenerateMips(env_cube_srv.Get());
+
+  // Create cubemap for prefiltered environment map
+
+  D3D11_TEXTURE2D_DESC const prefiltered_env_cube_tex_desc{
+    .Width = env_cube_size,
+    .Height = env_cube_size,
+    .MipLevels = env_cube_mip_count,
+    .ArraySize = 6,
+    .Format = DXGI_FORMAT_R32G32B32A32_FLOAT,
+    .SampleDesc = {.Count = 1, .Quality = 0},
+    .Usage = D3D11_USAGE_DEFAULT,
+    .BindFlags = D3D11_BIND_UNORDERED_ACCESS | D3D11_BIND_SHADER_RESOURCE,
+    .CPUAccessFlags = 0,
+    .MiscFlags = D3D11_RESOURCE_MISC_TEXTURECUBE
+  };
+
+  ComPtr<ID3D11Texture2D> prefiltered_env_cube_tex;
+  ThrowIfFailed(dev->CreateTexture2D(&prefiltered_env_cube_tex_desc, nullptr, &prefiltered_env_cube_tex));
+
+  // Copy env_cube mip0 to prefiltered_env_cube mip0
+
+  for (unsigned face{0}; face < 6; face++) {
+    auto const subresource{D3D11CalcSubresource(0, face, env_cube_mip_count)};
+    ctx->CopySubresourceRegion(prefiltered_env_cube_tex.Get(), subresource, 0, 0, 0, env_cube_tex.Get(), subresource,
+                               nullptr);
+  }
+
+  // Prefilter environment cubemap into mip1...N
+
   D3D11_BUFFER_DESC constexpr env_prefilter_cbv_desc{
     .ByteWidth = sizeof(EnvPrefilterConstants),
     .Usage = D3D11_USAGE_DYNAMIC,
@@ -498,13 +529,14 @@ auto wmain(int const argc, wchar_t** const argv) -> int {
 
   for (auto mip{1u}; mip < env_cube_mip_count; ++mip) {
     D3D11_UNORDERED_ACCESS_VIEW_DESC const env_cube_mip_uav_desc{
-      .Format = env_cube_tex_desc.Format,
+      .Format = prefiltered_env_cube_tex_desc.Format,
       .ViewDimension = D3D11_UAV_DIMENSION_TEXTURE2DARRAY,
       .Texture2DArray = {.MipSlice = mip, .FirstArraySlice = 0, .ArraySize = 6}
     };
 
-    ComPtr<ID3D11UnorderedAccessView> env_cube_mip_uav;
-    ThrowIfFailed(dev->CreateUnorderedAccessView(env_cube_tex.Get(), &env_cube_mip_uav_desc, &env_cube_mip_uav));
+    ComPtr<ID3D11UnorderedAccessView> prefiltered_env_cube_mip_uav;
+    ThrowIfFailed(dev->CreateUnorderedAccessView(prefiltered_env_cube_tex.Get(), &env_cube_mip_uav_desc,
+                                                 &prefiltered_env_cube_mip_uav));
 
     D3D11_MAPPED_SUBRESOURCE mapped_prefilter_cbv;
     ThrowIfFailed(ctx->Map(env_prefilter_cbv.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_prefilter_cbv));
@@ -519,8 +551,9 @@ auto wmain(int const argc, wchar_t** const argv) -> int {
     ctx->Unmap(env_prefilter_cbv.Get(), 0);
 
     ctx->CSSetShader(shaders->env_prefilter_cs.Get(), nullptr, 0);
-    ctx->CSSetUnorderedAccessViews(ENV_PREFILTER_ENV_CUBE_UAV_SLOT, 1, env_cube_mip_uav.GetAddressOf(), nullptr);
-    ctx->CSSetShaderResources(ENV_PREFILTER_CUBE_SRV_SLOT, 1, env_cube_mip0_srv.GetAddressOf());
+    ctx->CSSetUnorderedAccessViews(ENV_PREFILTER_ENV_CUBE_UAV_SLOT, 1, prefiltered_env_cube_mip_uav.GetAddressOf(),
+                                   nullptr);
+    ctx->CSSetShaderResources(ENV_PREFILTER_CUBE_SRV_SLOT, 1, env_cube_srv.GetAddressOf());
     ctx->CSSetConstantBuffers(ENV_PREFILTER_CB_SLOT, 1, env_prefilter_cbv.GetAddressOf());
     ctx->CSSetSamplers(ENV_PREFILTER_SAMPLER_SLOT, 1, sampler_trilinear_clamp.GetAddressOf());
 
@@ -530,6 +563,18 @@ auto wmain(int const argc, wchar_t** const argv) -> int {
     ctx->Dispatch(static_cast<UINT>(group_count_x), static_cast<UINT>(group_count_y), 6);
   }
   ctx->CSSetUnorderedAccessViews(ENV_PREFILTER_ENV_CUBE_UAV_SLOT, 1, null_uav.GetAddressOf(), nullptr);
+
+  // Create srv for all mips of the prefiltered environment cubemap
+
+  D3D11_SHADER_RESOURCE_VIEW_DESC const prefiltered_env_cube_srv_desc{
+    .Format = prefiltered_env_cube_tex_desc.Format,
+    .ViewDimension = D3D11_SRV_DIMENSION_TEXTURECUBE,
+    .TextureCube = {.MostDetailedMip = 0, .MipLevels = env_cube_mip_count}
+  };
+
+  ComPtr<ID3D11ShaderResourceView> prefiltered_env_cube_srv;
+  ThrowIfFailed(dev->CreateShaderResourceView(prefiltered_env_cube_tex.Get(), &prefiltered_env_cube_srv_desc,
+                                              &prefiltered_env_cube_srv));
 
   D3D11_VIEWPORT const viewport{
     .TopLeftX = 0.0F, .TopLeftY = 0.0F,
@@ -652,7 +697,7 @@ auto wmain(int const argc, wchar_t** const argv) -> int {
     ctx->PSSetShaderResources(LIGHTING_GBUFFER0_SRV_SLOT, 1, gbuffer0_srv.GetAddressOf());
     ctx->PSSetShaderResources(LIGHTING_GBUFFER1_SRV_SLOT, 1, gbuffer1_srv.GetAddressOf());
     ctx->PSSetShaderResources(LIGHTING_DEPTH_SRV_SLOT, 1, depth_srv.GetAddressOf());
-    ctx->PSSetShaderResources(LIGHTING_ENV_MAP_SRV_SLOT, 1, env_cube_all_mips_srv.GetAddressOf());
+    ctx->PSSetShaderResources(LIGHTING_ENV_MAP_SRV_SLOT, 1, prefiltered_env_cube_srv.GetAddressOf());
     ctx->PSSetSamplers(LIGHTING_GBUFFER_SAMPLER_SLOT, 1, sampler_point_clamp.GetAddressOf());
     ctx->PSSetSamplers(LIGHTING_ENV_SAMPLER_SLOT, 1, sampler_trilinear_clamp.GetAddressOf());
 
