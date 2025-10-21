@@ -593,9 +593,7 @@ auto wmain(int const argc, wchar_t** const argv) -> int {
   auto end{begin};
 
   while (true) {
-    auto const delta_time{
-      static_cast<float>(std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count()) / 1000.0f
-    };
+    auto const delta_time{std::chrono::duration_cast<std::chrono::duration<float>>(end - begin).count()};
 
     MSG msg;
 
