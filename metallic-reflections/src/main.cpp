@@ -4,6 +4,8 @@
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
 #include <d3d11_4.h>
+#include <DirectXCollision.h>
+#include <DirectXMath.h>
 #include <dxgi1_6.h>
 #include <stb_image.h>
 #include <Windows.h>
@@ -358,11 +360,41 @@ auto wmain(int const argc, wchar_t** const argv) -> int {
 
   ShowWindow(hwnd.get(), SW_SHOW);
 
+  // Load scene from disk
+
   auto const cpu_scene{refl::LoadCpuScene(argv[1])};
 
   if (!cpu_scene) {
     return -1;
   }
+
+  // Compute scene bounds
+
+  namespace dx = DirectX;
+
+  std::vector<dx::BoundingBox> mesh_bounds;
+  mesh_bounds.reserve(cpu_scene->meshes.size());
+
+  for (auto const& mesh : cpu_scene->meshes) {
+    auto& mesh_bound{mesh_bounds.emplace_back()};
+    dx::BoundingBox::CreateFromPoints(mesh_bound, mesh.positions.size(),
+                                      reinterpret_cast<dx::XMFLOAT3 const*>(mesh.positions.data()), 4 * sizeof(float));
+  }
+
+  while (mesh_bounds.size() > 1) {
+    auto const sz{mesh_bounds.size()};
+    dx::BoundingBox::CreateMerged(mesh_bounds[sz - 2], mesh_bounds[sz - 1], mesh_bounds[sz - 2]);
+		mesh_bounds.pop_back();
+  }
+
+  if (mesh_bounds.empty()) {
+    std::cerr << "Scene contains no meshes.\n";
+    return -1;
+  }
+
+  auto const& scene_bounds{mesh_bounds[0]};
+
+  // Create scene gpu data
 
   auto const gpu_scene{refl::CreateGpuScene(*cpu_scene, *dev.Get())};
 
