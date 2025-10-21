@@ -24,29 +24,29 @@ void CsMain(const uint3 dtid : SV_DispatchThreadID) {
   if (x >= cube_map_size.x || y >= cube_map_size.y || face >= cube_map_size.z) {
     return;
   }
-  
+
   const float2 ndc = UvToNdc((float2(x, y) + 0.5) / float2(cube_map_size.xy));
 
   float3 dir = float3(1, 0, 0);
 
   switch (face) {
   case 0:
-    dir = normalize(float3(1, ndc.y, -ndc.x));
+    dir = normalize(float3(1.0f, ndc.y, -ndc.x));
     break;
   case 1:
-    dir = normalize(float3(-1, ndc.y, ndc.x));
+    dir = normalize(float3(-1.0f, ndc.y, ndc.x));
     break;
   case 2:
-    dir = normalize(float3(ndc.x, 1, ndc.y));
+    dir = normalize(float3(ndc.x, 1.0f, -ndc.y));
     break;
   case 3:
-    dir = normalize(float3(ndc.x, -1, -ndc.y));
+    dir = normalize(float3(ndc.x, -1.0f, ndc.y));
     break;
   case 4:
-    dir = normalize(float3(ndc.x, ndc.y, 1));
+    dir = normalize(float3(ndc.x, ndc.y, 1.0f));
     break;
   case 5:
-    dir = normalize(float3(-ndc.x, ndc.y, -1));
+    dir = normalize(float3(-ndc.x, ndc.y, -1.0f));
     break;
   }
 
