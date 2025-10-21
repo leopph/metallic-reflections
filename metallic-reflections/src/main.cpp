@@ -589,7 +589,7 @@ auto wmain(int const argc, wchar_t** const argv) -> int {
 
   std::array constexpr black_color{0.0F, 0.0F, 0.0F, 1.0F};
 
-  refl::OrbitingCamera cam{{0, 0.0175F, 0}, 0.05F, 0.001F, 1.F, 60.0F};
+  refl::OrbitingCamera cam{{0, 0.0175F, 0}, 0.05F, 0.001F, 1.F, 90.0F};
 
   int ret;
 
