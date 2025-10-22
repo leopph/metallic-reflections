@@ -599,6 +599,8 @@ auto wmain(int const argc, wchar_t** const argv) -> int {
   constexpr auto cam_near{0.1F};
   constexpr auto cam_far{5.F};
   refl::OrbitingCamera cam{{0, 0, 0}, 2.5F, cam_near, cam_far, 90.0F};
+
+  constexpr auto cam_zoom_speed{1.0f};
   //cam.Rotate(20);
 
   int ret;
@@ -619,6 +621,16 @@ auto wmain(int const argc, wchar_t** const argv) -> int {
 
       TranslateMessage(&msg);
       DispatchMessageW(&msg);
+    }
+
+    // W
+    if (wnd->IsKeyPressed(0x57)) {
+      cam.Zoom(-cam_zoom_speed * delta_time);
+    }
+
+    // S
+    if (wnd->IsKeyPressed(0x53)) {
+      cam.Zoom(cam_zoom_speed * delta_time);
     }
 
     cam.Rotate(15 * delta_time);

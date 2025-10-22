@@ -1,5 +1,7 @@
 #include "OrbitingCamera.hpp"
 
+#include <algorithm>
+
 namespace refl {
 OrbitingCamera::OrbitingCamera(DirectX::XMFLOAT3 const& orbit_center, float const orbit_dist, float const near_clip,
                                float const far_clip, float const vertical_fov_degrees) :
@@ -14,6 +16,11 @@ auto OrbitingCamera::Rotate(float const yaw_degrees) -> void {
   XMVECTOR const yaw_rotation_quat{XMQuaternionRotationAxis(XMVectorSet(0.0F, 1.0F, 0.0F, 0.0F), yaw_radians)};
   XMVECTOR const new_rotation_quat{XMQuaternionMultiply(yaw_rotation_quat, current_rotation_quat)};
   XMStoreFloat4(&rotation_, new_rotation_quat);
+}
+
+auto OrbitingCamera::Zoom(float const amount) -> void {
+  orbit_dist_ += amount;
+  orbit_dist_ = std::max(orbit_dist_, 0.1F);
 }
 
 auto OrbitingCamera::ComputePosition() const -> DirectX::XMFLOAT3 {

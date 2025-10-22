@@ -9,6 +9,7 @@ public:
                  float vertical_fov_degrees);
 
   auto Rotate(float yaw_degrees) -> void;
+  auto Zoom(float amount) -> void;
 
   [[nodiscard]] auto ComputePosition() const -> DirectX::XMFLOAT3;
   [[nodiscard]] auto ComputeViewMatrix() const -> DirectX::XMFLOAT4X4;
