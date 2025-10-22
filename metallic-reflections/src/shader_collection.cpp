@@ -7,6 +7,7 @@
 #include "shaders/generated/Debug/gbuffer_vs.h"
 #include "shaders/generated/Debug/lighting_ps.h"
 #include "shaders/generated/Debug/lighting_vs.h"
+#include "shaders/generated/Debug/ssr_cs.h"
 #include "shaders/generated/Debug/tonemapping_ps.h"
 #include "shaders/generated/Debug/tonemapping_vs.h"
 #else
@@ -16,6 +17,7 @@
 #include "shaders/generated/Release/gbuffer_vs.h"
 #include "shaders/generated/Release/lighting_ps.h"
 #include "shaders/generated/Release/lighting_vs.h"
+#include "shaders/generated/Release/ssr_cs.h"
 #include "shaders/generated/Release/tonemapping_ps.h"
 #include "shaders/generated/Release/tonemapping_vs.h"
 #endif
@@ -71,6 +73,12 @@ auto LoadShaders(ID3D11Device5& dev) -> std::optional<ShaderCollection> {
   if (FAILED(dev.CreateComputeShader(
     g_env_prefilter_cs_bytes, ARRAYSIZE(g_env_prefilter_cs_bytes), nullptr,
     &shaders.env_prefilter_cs))) {
+    return std::nullopt;
+  }
+
+  if (FAILED(dev.CreateComputeShader(
+    g_ssr_cs_bytes, ARRAYSIZE(g_ssr_cs_bytes), nullptr,
+    &shaders.ssr_cs))) {
     return std::nullopt;
   }
 

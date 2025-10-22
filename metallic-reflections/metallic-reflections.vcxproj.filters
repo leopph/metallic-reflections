@@ -66,6 +66,7 @@
     <FxCompile Include="src\shaders\compile\gbuffer_ps.hlsl" />
     <FxCompile Include="src\shaders\compile\equirect_to_cube.hlsl" />
     <FxCompile Include="src\shaders\compile\env_prefilter_cs.hlsl" />
+    <FxCompile Include="src\shaders\compile\ssr_cs.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <None Include="src\shaders\lighting.hlsli" />
@@ -79,5 +80,7 @@
     <None Include="src\shaders\constants.hlsli" />
     <None Include="src\shaders\brdf.hlsli" />
     <None Include="src\shaders\change_of_basis.hlsli" />
+    <None Include="src\shaders\ssr.hlsli" />
+    <None Include="src\shaders\ray_march.hlsli" />
   </ItemGroup>
 </Project>

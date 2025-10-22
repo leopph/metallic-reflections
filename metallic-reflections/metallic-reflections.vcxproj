@@ -52,6 +52,14 @@
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
     </FxCompile>
+    <FxCompile Include="src\shaders\compile\ssr_cs.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">CsMain</EntryPointName>
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">CsMain</EntryPointName>
+    </FxCompile>
     <FxCompile Include="src\shaders\compile\tonemapping_ps.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
@@ -87,6 +95,8 @@
     <None Include="src\shaders\gbuffer.hlsli" />
     <None Include="src\shaders\equirect_to_cube.hlsli" />
     <None Include="src\shaders\lighting.hlsli" />
+    <None Include="src\shaders\ray_march.hlsli" />
+    <None Include="src\shaders\ssr.hlsli" />
     <None Include="src\shaders\resource_binding_helpers.hlsli" />
     <None Include="src\shaders\tonemapping.hlsli" />
     <None Include="vcpkg.json" />

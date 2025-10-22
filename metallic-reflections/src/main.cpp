@@ -123,7 +123,7 @@ auto wmain(int const argc, wchar_t** const argv) -> int {
   ComPtr<ID3D11Texture2D> swap_chain_tex;
   ThrowIfFailed(swap_chain->GetBuffer(0, IID_PPV_ARGS(&swap_chain_tex)));
 
-  D3D11_TEXTURE2D_DESC const hdr_tex_desc{
+  D3D11_TEXTURE2D_DESC const ibl_tex_desc{
     .Width = output_width,
     .Height = output_height,
     .MipLevels = 1,
@@ -136,26 +136,60 @@ auto wmain(int const argc, wchar_t** const argv) -> int {
     .MiscFlags = 0,
   };
 
-  ComPtr<ID3D11Texture2D> hdr_tex;
-  ThrowIfFailed(dev->CreateTexture2D(&hdr_tex_desc, nullptr, &hdr_tex));
+  ComPtr<ID3D11Texture2D> ibl_tex;
+  ThrowIfFailed(dev->CreateTexture2D(&ibl_tex_desc, nullptr, &ibl_tex));
 
-  D3D11_RENDER_TARGET_VIEW_DESC hdr_rtv_desc{
-    .Format = hdr_tex_desc.Format,
+  D3D11_RENDER_TARGET_VIEW_DESC const ibl_rtv_desc{
+    .Format = ibl_tex_desc.Format,
     .ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D,
     .Texture2D = {.MipSlice = 0}
   };
 
-  ComPtr<ID3D11RenderTargetView> hdr_rtv;
-  ThrowIfFailed(dev->CreateRenderTargetView(hdr_tex.Get(), &hdr_rtv_desc, &hdr_rtv));
+  ComPtr<ID3D11RenderTargetView> ibl_rtv;
+  ThrowIfFailed(dev->CreateRenderTargetView(ibl_tex.Get(), &ibl_rtv_desc, &ibl_rtv));
 
-  D3D11_SHADER_RESOURCE_VIEW_DESC const hdr_srv_desc{
-    .Format = hdr_tex_desc.Format,
+  D3D11_SHADER_RESOURCE_VIEW_DESC const ibl_srv_desc{
+    .Format = ibl_tex_desc.Format,
     .ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D,
     .Texture2D = {.MostDetailedMip = 0, .MipLevels = 1}
   };
 
-  ComPtr<ID3D11ShaderResourceView> hdr_srv;
-  ThrowIfFailed(dev->CreateShaderResourceView(hdr_tex.Get(), &hdr_srv_desc, &hdr_srv));
+  ComPtr<ID3D11ShaderResourceView> ibl_srv;
+  ThrowIfFailed(dev->CreateShaderResourceView(ibl_tex.Get(), &ibl_srv_desc, &ibl_srv));
+
+  D3D11_TEXTURE2D_DESC const ssr_tex_desc{
+    .Width = output_width,
+    .Height = output_height,
+    .MipLevels = 1,
+    .ArraySize = 1,
+    .Format = DXGI_FORMAT_R32G32B32A32_FLOAT,
+    .SampleDesc = {.Count = 1, .Quality = 0},
+    .Usage = D3D11_USAGE_DEFAULT,
+    .BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS,
+    .CPUAccessFlags = 0,
+    .MiscFlags = 0,
+  };
+
+  ComPtr<ID3D11Texture2D> ssr_tex;
+  ThrowIfFailed(dev->CreateTexture2D(&ssr_tex_desc, nullptr, &ssr_tex));
+
+  D3D11_UNORDERED_ACCESS_VIEW_DESC const ssr_uav_tex{
+    .Format = ssr_tex_desc.Format,
+    .ViewDimension = D3D11_UAV_DIMENSION_TEXTURE2D,
+    .Texture2D = {.MipSlice = 0}
+  };
+
+  ComPtr<ID3D11UnorderedAccessView> ssr_uav;
+  ThrowIfFailed(dev->CreateUnorderedAccessView(ssr_tex.Get(), &ssr_uav_tex, &ssr_uav));
+
+  D3D11_SHADER_RESOURCE_VIEW_DESC const ssr_srv_desc{
+    .Format = ssr_tex_desc.Format,
+    .ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D,
+    .Texture2D = {.MostDetailedMip = 0, .MipLevels = 1}
+  };
+
+  ComPtr<ID3D11ShaderResourceView> ssr_srv;
+  ThrowIfFailed(dev->CreateShaderResourceView(ssr_tex.Get(), &ssr_srv_desc, &ssr_srv));
 
   D3D11_TEXTURE2D_DESC const sdr_tex_desc{
     .Width = output_width,
@@ -589,7 +623,10 @@ auto wmain(int const argc, wchar_t** const argv) -> int {
 
   std::array constexpr black_color{0.0F, 0.0F, 0.0F, 1.0F};
 
-  refl::OrbitingCamera cam{{0, 0.0175F, 0}, 0.05F, 0.001F, 1.F, 90.0F};
+  constexpr auto cam_near{0.001F};
+  constexpr auto cam_far{1.F};
+  refl::OrbitingCamera cam{{0, 0.0175F, 0}, 0.05F, cam_near, cam_far, 90.0F};
+  //cam.Rotate(20);
 
   int ret;
 
@@ -611,7 +648,7 @@ auto wmain(int const argc, wchar_t** const argv) -> int {
       DispatchMessageW(&msg);
     }
 
-    cam.Rotate(30 * delta_time);
+    cam.Rotate(15 * delta_time);
 
     auto const view_mtx{cam.ComputeViewMatrix()};
     auto const proj_mtx{cam.ComputeProjMatrix(static_cast<float>(output_width) / static_cast<float>(output_height))};
@@ -643,7 +680,9 @@ auto wmain(int const argc, wchar_t** const argv) -> int {
       .view_proj_mtx = view_proj_mtx,
       .view_proj_inv_mtx = view_proj_inv_mtx,
       .pos_ws = cam.ComputePosition(),
-      .pad = 0.0F
+      .near_clip = cam_near,
+      .far_clip = cam_far,
+      .pad = {}
     };
 
     ctx->Unmap(cam_cbuf.Get(), 0);
@@ -689,8 +728,8 @@ auto wmain(int const argc, wchar_t** const argv) -> int {
 
     // Lighting pass
 
-    ctx->ClearRenderTargetView(hdr_rtv.Get(), black_color.data());
-    ctx->OMSetRenderTargets(1, hdr_rtv.GetAddressOf(), nullptr);
+    ctx->ClearRenderTargetView(ibl_rtv.Get(), black_color.data());
+    ctx->OMSetRenderTargets(1, ibl_rtv.GetAddressOf(), nullptr);
 
     ctx->VSSetShader(shaders->lighting_vs.Get(), nullptr, 0);
     ctx->PSSetShader(shaders->lighting_ps.Get(), nullptr, 0);
@@ -705,6 +744,26 @@ auto wmain(int const argc, wchar_t** const argv) -> int {
 
     ctx->Draw(3, 0);
 
+    ComPtr<ID3D11RenderTargetView> const null_rtv{nullptr};
+    ctx->OMSetRenderTargets(1, null_rtv.GetAddressOf(), nullptr);
+
+    // SSR pass
+
+    ctx->CSSetShader(shaders->ssr_cs.Get(), nullptr, 0);
+
+    ctx->CSSetShaderResources(SSR_DEPTH_SRV_SLOT, 1, depth_srv.GetAddressOf());
+    ctx->CSSetShaderResources(SSR_GBUFFER0_SRV_SLOT, 1, gbuffer0_srv.GetAddressOf());
+    ctx->CSSetShaderResources(SSR_GBUFFER1_SRV_SLOT, 1, gbuffer1_srv.GetAddressOf());
+    ctx->CSSetShaderResources(SSR_IBL_SRV_SLOT, 1, ibl_srv.GetAddressOf());
+    ctx->CSSetUnorderedAccessViews(SSR_SSR_UAV_SLOT, 1, ssr_uav.GetAddressOf(), nullptr);
+    ctx->CSSetConstantBuffers(SSR_CAM_CB_SLOT, 1, cam_cbuf.GetAddressOf());
+
+    auto const ssr_group_count_x{(output_width + SSR_THREADS_X - 1) / SSR_THREADS_X};
+    auto const ssr_group_count_y{(output_height + SSR_THREADS_Y - 1) / SSR_THREADS_Y};
+    ctx->Dispatch(ssr_group_count_x, ssr_group_count_y, 1);
+
+    ctx->CSSetUnorderedAccessViews(SSR_SSR_UAV_SLOT, 1, null_uav.GetAddressOf(), nullptr);
+
     // Tonemapping pass
 
     ctx->OMSetRenderTargets(1, sdr_rtv.GetAddressOf(), nullptr);
@@ -712,7 +771,7 @@ auto wmain(int const argc, wchar_t** const argv) -> int {
     ctx->VSSetShader(shaders->tonemapping_vs.Get(), nullptr, 0);
     ctx->PSSetShader(shaders->tonemapping_ps.Get(), nullptr, 0);
 
-    ctx->PSSetShaderResources(TONEMAPPING_HDR_TEX_SRV_SLOT, 1, hdr_srv.GetAddressOf());
+    ctx->PSSetShaderResources(TONEMAPPING_HDR_TEX_SRV_SLOT, 1, ssr_srv.GetAddressOf());
     ctx->PSSetSamplers(TONEMAPPING_SAMPLER_SLOT, 1, sampler_point_clamp.GetAddressOf());
 
     ctx->Draw(3, 0);

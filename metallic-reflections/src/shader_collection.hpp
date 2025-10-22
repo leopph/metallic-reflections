@@ -18,6 +18,7 @@ struct ShaderCollection {
   Microsoft::WRL::ComPtr<ID3D11PixelShader> tonemapping_ps;
 	Microsoft::WRL::ComPtr<ID3D11ComputeShader> equirect_to_cubemap_cs;
   Microsoft::WRL::ComPtr<ID3D11ComputeShader> env_prefilter_cs;
+  Microsoft::WRL::ComPtr<ID3D11ComputeShader> ssr_cs;
 
   Microsoft::WRL::ComPtr<ID3D11InputLayout> mesh_il;
 };
