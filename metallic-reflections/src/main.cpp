@@ -363,33 +363,6 @@ auto wmain(int const argc, wchar_t** const argv) -> int {
   ComPtr<ID3D11Buffer> cam_cbuf;
   ThrowIfFailed(dev->CreateBuffer(&cam_cbuf_desc, nullptr, &cam_cbuf));
 
-  Material constexpr mtl{
-    .base_color = {1, 1, 1},
-    .has_base_color_map = FALSE,
-    .roughness = 0.01F,
-    .has_roughness_map = FALSE,
-    .has_normal_map = FALSE,
-    .pad = 0
-  };
-
-  D3D11_BUFFER_DESC constexpr mtl_cbuf_desc{
-    .ByteWidth = sizeof(mtl),
-    .Usage = D3D11_USAGE_IMMUTABLE,
-    .BindFlags = D3D11_BIND_CONSTANT_BUFFER,
-    .CPUAccessFlags = 0,
-    .MiscFlags = 0,
-    .StructureByteStride = 0
-  };
-
-  D3D11_SUBRESOURCE_DATA const mtl_cbuf_data{
-    .pSysMem = &mtl,
-    .SysMemPitch = 0,
-    .SysMemSlicePitch = 0
-  };
-
-  ComPtr<ID3D11Buffer> mtl_cbuf;
-  ThrowIfFailed(dev->CreateBuffer(&mtl_cbuf_desc, &mtl_cbuf_data, &mtl_cbuf));
-
   ShowWindow(hwnd.get(), SW_SHOW);
 
   // Load scene from disk
@@ -707,7 +680,6 @@ auto wmain(int const argc, wchar_t** const argv) -> int {
     ctx->IASetInputLayout(shaders->mesh_il.Get());
 
     ctx->VSSetConstantBuffers(CAMERA_CB_SLOT, 1, cam_cbuf.GetAddressOf());
-    ctx->PSSetConstantBuffers(MATERIAL_CB_SLOT, 1, mtl_cbuf.GetAddressOf());
     ctx->PSSetSamplers(MATERIAL_SAMPLER_SLOT, 1, sampler_trilinear_clamp.GetAddressOf());
 
     for (auto const& mesh : gpu_scene->meshes) {
@@ -723,6 +695,7 @@ auto wmain(int const argc, wchar_t** const argv) -> int {
       ctx->IASetVertexBuffers(0, 4, vertex_buffers.data(), strides.data(), offsets.data());
       ctx->IASetIndexBuffer(mesh.idx_buf.Get(), DXGI_FORMAT_R32_UINT, 0);
       ctx->VSSetConstantBuffers(OBJECT_CB_SLOT, 1, mesh.transform_buf.GetAddressOf());
+      ctx->PSSetConstantBuffers(MATERIAL_CB_SLOT, 1, mesh.mtl_buf.GetAddressOf());
       ctx->DrawIndexed(mesh.idx_count, 0, 0);
     }
 

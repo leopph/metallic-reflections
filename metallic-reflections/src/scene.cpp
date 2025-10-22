@@ -7,7 +7,7 @@
 import std;
 
 namespace refl {
-auto LoadCpuScene(std::filesystem::path const& sceneFilePath) -> std::optional<CpuScene> {
+auto LoadCpuScene(std::filesystem::path const& scene_file_path) -> std::optional<CpuScene> {
   namespace dx = DirectX;
 
   Assimp::Importer importer;
@@ -20,7 +20,7 @@ auto LoadCpuScene(std::filesystem::path const& sceneFilePath) -> std::optional<C
   importer.SetPropertyFloat(AI_CONFIG_PP_GSN_MAX_SMOOTHING_ANGLE, 80.0f);
 
   auto const ai_scene{
-    importer.ReadFile(reinterpret_cast<char const*>(sceneFilePath.u8string().data()),
+    importer.ReadFile(reinterpret_cast<char const*>(scene_file_path.u8string().data()),
                       aiProcessPreset_TargetRealtime_MaxQuality | aiProcess_ConvertToLeftHanded |
                       aiProcess_TransformUVCoords |
                       aiProcess_RemoveComponent)
@@ -104,6 +104,16 @@ auto LoadCpuScene(std::filesystem::path const& sceneFilePath) -> std::optional<C
       mesh.transform.world_mtx = world_mtx;
       dx::XMStoreFloat4x4(&mesh.transform.normal_mtx,
                           dx::XMMatrixTranspose(dx::XMMatrixInverse(nullptr, dx::XMLoadFloat4x4(&world_mtx))));
+
+      auto const ai_mtl{ai_scene->mMaterials[ai_mesh->mMaterialIndex]};
+
+      if (aiColor3D base_color; ai_mtl->Get(AI_MATKEY_BASE_COLOR, base_color) == aiReturn_SUCCESS) {
+        mesh.mtl.base_color = dx::XMFLOAT3{base_color.r, base_color.g, base_color.b};
+      }
+
+      if (float roughness; ai_mtl->Get(AI_MATKEY_ROUGHNESS_FACTOR, roughness) == aiReturn_SUCCESS) {
+        mesh.mtl.roughness = roughness;
+      }
     }
 
     for (unsigned int j = 0; j < node->mNumChildren; ++j) {
@@ -114,10 +124,10 @@ auto LoadCpuScene(std::filesystem::path const& sceneFilePath) -> std::optional<C
   return scene;
 }
 
-auto CreateGpuScene(CpuScene const& cpuScene, ID3D11Device& dev) -> std::optional<GpuScene> {
+auto CreateGpuScene(CpuScene const& cpu_scene, ID3D11Device& dev) -> std::optional<GpuScene> {
   GpuScene gpu_scene;
 
-  for (auto const& cpu_mesh : cpuScene.meshes) {
+  for (auto const& cpu_mesh : cpu_scene.meshes) {
     auto& gpu_mesh{gpu_scene.meshes.emplace_back()};
 
     {
@@ -231,7 +241,7 @@ auto CreateGpuScene(CpuScene const& cpuScene, ID3D11Device& dev) -> std::optiona
     }
 
     {
-      D3D11_BUFFER_DESC const transform_buf_desc{
+      D3D11_BUFFER_DESC constexpr transform_buf_desc{
         .ByteWidth = static_cast<UINT>(sizeof(GpuMeshTransform)),
         .Usage = D3D11_USAGE_DEFAULT,
         .BindFlags = D3D11_BIND_CONSTANT_BUFFER,
@@ -252,7 +262,38 @@ auto CreateGpuScene(CpuScene const& cpuScene, ID3D11Device& dev) -> std::optiona
       }
     }
 
-		gpu_mesh.idx_count = static_cast<UINT>(cpu_mesh.indices.size());
+    {
+      D3D11_BUFFER_DESC constexpr mtl_buf_desc{
+        .ByteWidth = static_cast<UINT>(sizeof(GpuMaterial)),
+        .Usage = D3D11_USAGE_DEFAULT,
+        .BindFlags = D3D11_BIND_CONSTANT_BUFFER,
+        .CPUAccessFlags = 0,
+        .MiscFlags = 0,
+        .StructureByteStride = 0
+      };
+
+      GpuMaterial const gpu_mtl{
+        .base_color = cpu_mesh.mtl.base_color,
+        .roughness = cpu_mesh.mtl.roughness,
+        .has_base_color_map = FALSE,
+        .has_roughness_map = FALSE,
+        .has_normal_map = FALSE,
+        .pad = {}
+      };
+
+      D3D11_SUBRESOURCE_DATA const mtl_buf_data{
+        .pSysMem = &gpu_mtl,
+        .SysMemPitch = 0,
+        .SysMemSlicePitch = 0
+      };
+
+      if (FAILED(dev.CreateBuffer(&mtl_buf_desc, &mtl_buf_data, &gpu_mesh.mtl_buf))) {
+        std::cerr << "Failed to create material buffer\n";
+        return std::nullopt;
+      }
+    }
+
+    gpu_mesh.idx_count = static_cast<UINT>(cpu_mesh.indices.size());
   }
 
   return gpu_scene;

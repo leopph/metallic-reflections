@@ -16,6 +16,11 @@ namespace refl {
 using Vector2 = std::array<float, 2>;
 using Vector4 = std::array<float, 4>;
 
+struct CpuMaterial {
+  DirectX::XMFLOAT3 base_color;
+  float roughness;
+};
+
 struct CpuMeshTransform {
   DirectX::XMFLOAT4X4 world_mtx;
   DirectX::XMFLOAT4X4 normal_mtx;
@@ -28,10 +33,20 @@ struct CpuMesh {
   std::vector<Vector4> tangents;
   std::vector<std::uint32_t> indices;
   CpuMeshTransform transform;
+  CpuMaterial mtl;
 };
 
 struct CpuScene {
   std::vector<CpuMesh> meshes;
+};
+
+struct GpuMaterial {
+  DirectX::XMFLOAT3 base_color;
+  float roughness;
+  BOOL has_base_color_map;
+  BOOL has_roughness_map;
+  BOOL has_normal_map;
+  UINT pad;
 };
 
 using GpuMeshTransform = CpuMeshTransform;
@@ -43,6 +58,7 @@ struct GpuMesh {
   Microsoft::WRL::ComPtr<ID3D11Buffer> tan_buf; //Vector4s
   Microsoft::WRL::ComPtr<ID3D11Buffer> idx_buf; // u32s
   Microsoft::WRL::ComPtr<ID3D11Buffer> transform_buf; // GpuMeshTransform
+  Microsoft::WRL::ComPtr<ID3D11Buffer> mtl_buf;
   UINT idx_count;
 };
 
@@ -51,6 +67,6 @@ struct GpuScene {
 };
 
 
-auto LoadCpuScene(std::filesystem::path const& sceneFilePath) -> std::optional<CpuScene>;
-auto CreateGpuScene(CpuScene const& cpuScene, ID3D11Device& dev) -> std::optional<GpuScene>;
+auto LoadCpuScene(std::filesystem::path const& scene_file_path) -> std::optional<CpuScene>;
+auto CreateGpuScene(CpuScene const& cpu_scene, ID3D11Device& dev) -> std::optional<GpuScene>;
 }

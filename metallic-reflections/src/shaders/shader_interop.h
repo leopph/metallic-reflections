@@ -56,8 +56,8 @@ using uint = std::uint32_t;
 
 struct Material {
   float3 base_color;
-  BOOL has_base_color_map;
   float roughness;
+  BOOL has_base_color_map;
   BOOL has_roughness_map;
   BOOL has_normal_map;
   float pad;
