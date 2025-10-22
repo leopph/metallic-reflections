@@ -598,10 +598,7 @@ auto wmain(int const argc, wchar_t** const argv) -> int {
 
   constexpr auto cam_near{0.1F};
   constexpr auto cam_far{5.F};
-  refl::OrbitingCamera cam{{0, 0, 0}, 2.5F, cam_near, cam_far, 90.0F};
-
-  constexpr auto cam_zoom_speed{1.0f};
-  //cam.Rotate(20);
+  refl::OrbitingCamera cam{{0, 0, 0}, 2.5f, cam_near, cam_far, 65.0f};
 
   int ret;
 
@@ -623,17 +620,29 @@ auto wmain(int const argc, wchar_t** const argv) -> int {
       DispatchMessageW(&msg);
     }
 
+    constexpr auto cam_zoom_speed{1.0f};
+    constexpr auto cam_rotate_speed{30.0f};
+    auto const cam_multiplier{wnd->IsKeyPressed(VK_SHIFT) ? 2.0f : 1.0f};
+
     // W
     if (wnd->IsKeyPressed(0x57)) {
-      cam.Zoom(-cam_zoom_speed * delta_time);
+      cam.Zoom(-cam_zoom_speed * cam_multiplier * delta_time);
     }
 
     // S
     if (wnd->IsKeyPressed(0x53)) {
-      cam.Zoom(cam_zoom_speed * delta_time);
+      cam.Zoom(cam_zoom_speed * cam_multiplier * delta_time);
     }
 
-    cam.Rotate(15 * delta_time);
+    // A
+    if (wnd->IsKeyPressed(0x41)) {
+      cam.Rotate(cam_rotate_speed * cam_multiplier * delta_time);
+    }
+
+    // D
+    if (wnd->IsKeyPressed(0x44)) {
+      cam.Rotate(-cam_rotate_speed * cam_multiplier * delta_time);
+    }
 
     auto const view_mtx{cam.ComputeViewMatrix()};
     auto const proj_mtx{cam.ComputeProjMatrix(static_cast<float>(output_width) / static_cast<float>(output_height))};
