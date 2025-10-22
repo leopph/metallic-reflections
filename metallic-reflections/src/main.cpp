@@ -24,9 +24,9 @@ auto wmain(int const argc, wchar_t** const argv) -> int {
     return -1;
   }
 
-  auto hwnd{refl::MakeWindow()};
+  auto wnd{refl::Window::New()};
 
-  if (!hwnd) {
+  if (!wnd) {
     return -1;
   }
 
@@ -61,8 +61,8 @@ auto wmain(int const argc, wchar_t** const argv) -> int {
     static_cast<unsigned>(output_desc.DesktopCoordinates.bottom - output_desc.DesktopCoordinates.top)
   };
 
-  SetWindowLongW(hwnd.get(), GWL_STYLE, WS_POPUP);
-  SetWindowPos(hwnd.get(), nullptr, output_desc.DesktopCoordinates.left, output_desc.DesktopCoordinates.top,
+  SetWindowLongW(wnd->GetHwnd(), GWL_STYLE, WS_POPUP);
+  SetWindowPos(wnd->GetHwnd(), nullptr, output_desc.DesktopCoordinates.left, output_desc.DesktopCoordinates.top,
                static_cast<LONG>(output_width), static_cast<LONG>(output_height), SWP_FRAMECHANGED);
 
   UINT d3d_device_flags{0};
@@ -114,7 +114,7 @@ auto wmain(int const argc, wchar_t** const argv) -> int {
   };
 
   ComPtr<IDXGISwapChain1> tmp_swap_chain;
-  ThrowIfFailed(dxgi_factory->CreateSwapChainForHwnd(dev.Get(), hwnd.get(), &swap_chain_desc, nullptr, nullptr,
+  ThrowIfFailed(dxgi_factory->CreateSwapChainForHwnd(dev.Get(), wnd->GetHwnd(), &swap_chain_desc, nullptr, nullptr,
                                                      &tmp_swap_chain));
 
   ComPtr<IDXGISwapChain2> swap_chain;
@@ -363,7 +363,7 @@ auto wmain(int const argc, wchar_t** const argv) -> int {
   ComPtr<ID3D11Buffer> cam_cbuf;
   ThrowIfFailed(dev->CreateBuffer(&cam_cbuf_desc, nullptr, &cam_cbuf));
 
-  ShowWindow(hwnd.get(), SW_SHOW);
+  ShowWindow(wnd->GetHwnd(), SW_SHOW);
 
   // Load scene from disk
 
