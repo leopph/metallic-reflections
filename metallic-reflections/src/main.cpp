@@ -596,9 +596,9 @@ auto wmain(int const argc, wchar_t** const argv) -> int {
 
   std::array constexpr black_color{0.0F, 0.0F, 0.0F, 1.0F};
 
-  constexpr auto cam_near{0.001F};
-  constexpr auto cam_far{1.F};
-  refl::OrbitingCamera cam{{0, 0.0175F, 0}, 0.05F, cam_near, cam_far, 90.0F};
+  constexpr auto cam_near{0.1F};
+  constexpr auto cam_far{5.F};
+  refl::OrbitingCamera cam{{0, 0, 0}, 2.5F, cam_near, cam_far, 90.0F};
   //cam.Rotate(20);
 
   int ret;
